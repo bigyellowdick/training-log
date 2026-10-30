@@ -61,7 +61,7 @@
 ### 一、网页版（最简单）
 
 ```bash
-git clone <this-repo> training-log
+git clone https://github.com/bigyellowdick/training-log.git
 cd training-log
 # 用任意静态服务器打开 fitness/index.html
 python3 -m http.server 8000 --directory fitness
