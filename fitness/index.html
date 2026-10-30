@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#f5f6f8">
+<title>训练日志</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="训练日志">
+<meta name="description" content="按动作循环记录力量训练的重量与次数，对比任意两天的进步">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{
+  background:#e9ecf0;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:#14161a;
+  display:flex;justify-content:center;
+  -webkit-font-smoothing:antialiased;
+}
+:root{
+  --bg:#f5f6f8;
+  --card:#fff;
+  --text:#14161a;
+  --sub:#8b919c;
+  --sub2:#aab0ba;
+  --line:#eef0f3;
+  --primary:#e8833a;
+  --primary-soft:#fdf1e7;
+  --green:#1f9d63;
+  --green-soft:#e9f7f0;
+  --red:#df5b5b;
+  --red-soft:#fdeeee;
+}
+button{font-family:inherit;cursor:pointer}
+input{font-family:inherit}
+/* iOS Safari 里输入框字号小于 16px 时，聚焦会自动放大整页；这里统一抬到 16px（仅 iOS 生效） */
+@supports (-webkit-touch-callout:none){
+  input,textarea,select{font-size:16px !important}
+}
+
+.app{
+  width:100%;max-width:440px;min-height:100vh;background:var(--bg);
+  position:relative;overflow-x:hidden;
+  box-shadow:0 0 40px rgba(16,24,40,.08);
+}
+.screen{padding:env(safe-area-inset-top,0px) 16px 108px;min-height:100vh}
+
+/* ---------- 顶部 ---------- */
+.page-hd{display:flex;align-items:flex-end;justify-content:space-between;padding:24px 2px 14px}
+.page-hd h1{font-size:27px;font-weight:800;letter-spacing:-.5px;margin:0;line-height:1.15}
+.page-hd .hd-sub{font-size:13px;color:var(--sub);margin-top:5px}
+.ghost-btn{
+  border:1px solid var(--line);background:#fff;color:#3d434d;
+  font-size:13px;font-weight:600;padding:7px 14px;border-radius:20px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.ghost-btn:active{background:#f3f4f6}
+.hd-add{
+  border:0;background:var(--primary);color:#fff;border-radius:20px;
+  font-size:13px;font-weight:700;padding:8px 15px;flex:none;
+  box-shadow:0 3px 10px rgba(232,131,58,.3)
+}
+.hd-add:active{transform:scale(.97)}
+
+/* ---------- 卡片 ---------- */
+.card{
+  background:var(--card);border-radius:18px;
+  box-shadow:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.04);
+  overflow:hidden;
+}
+.card+.card{margin-top:12px}
+
+/* ---------- 日历 ---------- */
+.cal{padding:18px 12px 10px}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;padding:0 6px 14px}
+.cal-title{font-size:17px;font-weight:800;letter-spacing:-.2px}
+.cal-nav{display:flex;gap:2px}
+.cal-nav button{
+  width:32px;height:32px;border:0;background:transparent;border-radius:50%;
+  color:#9aa0aa;font-size:19px;display:flex;align-items:center;justify-content:center;
+}
+.cal-nav button:active{background:#f2f3f5}
+.weekdays{display:grid;grid-template-columns:repeat(7,1fr);padding-bottom:6px}
+.weekdays span{text-align:center;font-size:11.5px;color:var(--sub2);font-weight:500}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px 0}
+.cell{
+  position:relative;border:0;background:transparent;
+  height:50px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+  padding:0;border-radius:12px;
+}
+.cell:active{background:#f4f5f7}
+.cell .num{
+  width:31px;height:31px;line-height:31px;text-align:center;border-radius:50%;
+  font-size:15px;font-weight:500;color:var(--text);display:block;
+}
+.cell.out .num{color:#d3d7dd}
+.cell.today .num{background:var(--primary);color:#fff;font-weight:700;box-shadow:0 3px 10px rgba(232,131,58,.35)}
+.cell .mark{
+  height:11px;line-height:11px;font-size:11.5px;font-weight:800;
+  color:var(--primary);display:block;
+}
+.cell.manual .num{box-shadow:inset 0 0 0 1.5px #f2cba9}
+.cell.manual.today .num{box-shadow:0 3px 10px rgba(232,131,58,.35)}
+
+.cal-legend{display:flex;gap:16px;padding:10px 4px 4px;font-size:11.5px;color:var(--sub2)}
+.cal-legend i{display:inline-block;margin-right:5px;font-style:normal;vertical-align:1px}
+.cal-legend i.ck{color:var(--primary);font-weight:800;font-size:12px}
+.cal-legend i.ring{
+  width:9px;height:9px;border-radius:50%;
+  box-shadow:inset 0 0 0 1.5px #f2cba9;
+}
+
+/* ---------- 今日卡 ---------- */
+.today-card{padding:16px 16px 14px;margin-top:12px}
+.tc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.tc-label{font-size:12px;color:var(--sub);font-weight:600;letter-spacing:.3px}
+.tag{
+  font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:20px;
+  background:var(--primary-soft);color:#c96f28;
+}
+.tag.rest{background:#f1f2f4;color:#8b919c}
+.tc-title{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.tc-list{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.tc-pill{font-size:12.5px;color:#4d535d;background:#f5f6f8;padding:6px 11px;border-radius:9px}
+.tc-meta{font-size:12px;color:var(--sub);margin-top:11px}
+.tc-meta b{color:#c96f28;font-weight:800;font-size:13.5px}
+.tc-btn{
+  margin-top:14px;width:100%;border:0;border-radius:13px;padding:13px;
+  background:var(--primary);color:#fff;font-size:15px;font-weight:700;
+  box-shadow:0 6px 16px rgba(232,131,58,.28)
+}
+.tc-btn:active{transform:scale(.985)}
+
+/* ---------- 详情页 ---------- */
+.nav-bar{display:flex;align-items:center;gap:10px;padding:16px 0 10px}
+.back{
+  width:36px;height:36px;border:0;border-radius:50%;background:#fff;
+  display:flex;align-items:center;justify-content:center;color:#3d434d;
+  box-shadow:0 1px 3px rgba(16,24,40,.08)
+}
+.nav-title{font-size:16px;font-weight:800}
+.nav-right{margin-left:auto;font-size:12.5px;color:var(--sub)}
+.day-hero{padding:18px 18px 16px}
+.day-hero .dh-tag{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.dh-title{font-size:23px;font-weight:800;letter-spacing:-.4px}
+.dh-sub{font-size:13px;color:var(--sub);margin-top:5px}
+.dh-stats{display:flex;gap:9px;margin-top:13px}
+.dh-stat{
+  flex:1;min-width:0;background:#fafbfc;border-radius:12px;padding:10px 6px;text-align:center
+}
+.dh-stat b{display:block;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.4px}
+.dh-stat span{display:block;font-size:10.5px;color:var(--sub2);margin-top:3px;white-space:nowrap}
+.dh-note{font-size:10.5px;color:#bcc1c9;margin-top:11px;line-height:1.5}
+.progress{height:6px;background:#f0f1f4;border-radius:6px;margin-top:14px;overflow:hidden}
+.progress i{display:block;height:100%;background:var(--primary);border-radius:6px;transition:width .3s}
+
+/* ---------- 动作卡 ---------- */
+.ex-card{padding:15px 14px 12px;margin-top:12px}
+.ex-hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.ex-name{font-size:15.5px;font-weight:700;letter-spacing:-.2px}
+.ex-last{font-size:11.5px;color:var(--sub2);white-space:nowrap}
+.sets{display:flex;flex-direction:column;gap:7px}
+.set-row{
+  display:flex;align-items:center;gap:6px;
+  background:#f7f8fa;border-radius:11px;padding:5px 6px 5px 5px;
+  transition:background .15s;
+}
+.set-row.done{background:var(--green-soft)}
+.set-no{
+  width:26px;height:26px;flex:none;border:0;border-radius:50%;
+  background:#fff;color:#9aa0aa;font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 2px rgba(16,24,40,.06)
+}
+.set-row.done .set-no{background:var(--green);color:#fff}
+.inp-wrap{
+  flex:1;min-width:0;display:flex;align-items:center;justify-content:center;
+  background:#fff;border-radius:8px;padding:0 6px;height:36px;
+  transition:box-shadow .15s;
+}
+.inp-wrap:focus-within{box-shadow:0 0 0 2px rgba(232,131,58,.4)}
+.inp{
+  width:4.6ch;flex:none;border:0;background:transparent;padding:0;
+  font-size:15px;font-weight:600;text-align:center;color:var(--text);outline:none;
+}
+.inp::placeholder{color:#c2c7cf;font-weight:400;font-size:13px}
+.suffix{font-size:11px;color:#c2c7cf;flex:none;padding-left:2px}
+.mul{font-size:11px;color:#c2c7cf;flex:none}
+.set-del{
+  width:24px;height:24px;flex:none;border:0;background:transparent;color:#b3b9c2;
+  font-size:13px;border-radius:50%;display:flex;align-items:center;justify-content:center
+}
+.set-del:active{background:#eceef1}
+.ex-ft{display:flex;align-items:center;justify-content:space-between;margin-top:9px;padding:0 2px}
+.add-set{border:0;background:transparent;color:var(--primary);font-size:13px;font-weight:700;padding:4px 2px}
+.ex-vol{font-size:11.5px;color:var(--sub2);font-variant-numeric:tabular-nums}
+.ex-drop{
+  border:0;background:transparent;color:#c2c7cf;font-size:11.5px;font-weight:600;
+  padding:4px 2px;font-family:inherit
+}
+.ex-drop:active{color:var(--red)}
+.extra-hd{padding:0;margin-top:12px}
+.extra-btn{
+  width:100%;display:flex;align-items:center;gap:10px;border:0;background:transparent;
+  padding:14px 16px;text-align:left;font-family:inherit
+}
+.extra-btn:active{background:#fafbfc}
+.extra-hd .dc-t{font-size:13.5px;color:#6b7280;font-weight:700}
+.extra-hd .dc-s{font-size:11.5px;color:var(--sub2);margin-top:4px}
+.extra-hd .ex-last{color:var(--primary);font-weight:700;font-size:11.5px;white-space:nowrap}
+.drop-all{
+  width:100%;margin-top:10px;border:1px solid var(--line);background:#fff;color:#8b919c;
+  font-size:12.5px;font-weight:600;padding:12px;border-radius:12px;font-family:inherit
+}
+.drop-all:active{background:#f7f8fa;color:var(--red)}
+
+.rest-hero{padding:40px 22px 34px;text-align:center}
+.rest-emoji{font-size:40px;line-height:1;margin-bottom:14px}
+.rest-t{font-size:20px;font-weight:800}
+.rest-s{font-size:13px;color:var(--sub);margin-top:8px;line-height:1.6}
+.rest-next{
+  display:inline-block;margin-top:18px;font-size:12.5px;color:#8b919c;
+  background:#f5f6f8;padding:8px 14px;border-radius:20px
+}
+.empty{padding:34px 20px;text-align:center;color:var(--sub);font-size:13.5px;line-height:1.7}
+.empty b{display:block;font-size:15px;color:#3d434d;margin-bottom:6px}
+
+/* ---------- 计划 ---------- */
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 16px}
+.row+.row{border-top:1px solid var(--line)}
+.row-t{font-size:14.5px;font-weight:600}
+.row-s{font-size:11.5px;color:var(--sub2);margin-top:3px}
+.stepper{display:flex;align-items:center;gap:4px;background:#f5f6f8;border-radius:12px;padding:3px}
+.stepper button{
+  width:30px;height:30px;border:0;border-radius:9px;background:#fff;color:#3d434d;
+  font-size:16px;font-weight:600;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 1px 2px rgba(16,24,40,.06)
+}
+.stepper button:active{background:#eef0f3}
+.stepper span{min-width:26px;text-align:center;font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.date-inp{
+  border:1px solid var(--line);background:#f7f8fa;border-radius:10px;
+  padding:8px 10px;font-size:13.5px;color:#3d434d;outline:none
+}
+.cycle-preview{display:flex;align-items:center;gap:6px;padding:14px 4px 4px;flex-wrap:wrap}
+.chip{
+  height:30px;min-width:38px;padding:0 10px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700
+}
+.chip.train{background:var(--primary-soft);color:#c96f28}
+.chip.rest{background:#eceef1;color:#98a0aa}
+.cycle-len{font-size:11.5px;color:var(--sub2);margin-left:4px}
+/* 循环顺序（组合套餐） */
+.chip.slot-chip{border:0;padding:0 9px;gap:0}
+.chip.slot-chip i{
+  font-style:normal;font-weight:600;font-size:10.5px;opacity:.72;
+  margin-left:4px;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap
+}
+.chip.slot-chip:active{transform:scale(.95)}
+.chip.train.off{background:#f5f6f8;color:#b6bcc5}
+.slot-meta{font-size:11.5px;color:var(--sub2);margin-top:10px;padding:0 4px}
+.slot-tools{display:flex;gap:8px;margin-top:12px}
+.slot-tools button{
+  flex:1;border:1px dashed #d8dce2;background:transparent;color:#6b7280;
+  font-size:12.5px;font-weight:600;padding:10px;border-radius:10px
+}
+.slot-tools button:active{background:#eef0f3}
+.tpl-wrap{display:flex;gap:7px;flex-wrap:wrap;padding:0 2px}
+.tpl-btn{
+  border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:9px 12px;font-size:12.5px;font-weight:600;color:#5a616b
+}
+.tpl-btn:active{background:#fdf1e7}
+.tpl-btn.on{border-color:#f6d5ba;background:var(--primary-soft);color:#c96f28}
+.mini-btn{
+  flex:none;border:1px solid #f6d5ba;background:var(--primary-soft);color:#c96f28;
+  font-size:11px;font-weight:700;padding:5px 9px;border-radius:8px
+}
+.day-card.unused .day-badge{background:#eceef1;color:#98a0aa}
+.day-card.unused .dc-t{color:#7b828c}
+.st-hint{font-weight:500;color:var(--sub2);font-size:11.5px}
+.slot-title{display:flex;align-items:baseline;justify-content:space-between;padding:22px 4px 10px}
+.slot-title b{font-size:13px;font-weight:700;color:#5a616b}
+.slot-title span{font-size:11.5px;color:var(--sub2)}
+.section-title{font-size:13px;font-weight:700;color:#5a616b;padding:22px 4px 10px}
+.day-card{display:flex;align-items:center;gap:13px;padding:15px 16px;margin-top:10px}
+.day-badge{
+  width:38px;height:38px;flex:none;border-radius:12px;background:var(--primary-soft);
+  color:#c96f28;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center
+}
+.day-card.rest-day .day-badge{background:#eceef1;color:#98a0aa}
+.grow{flex:1;min-width:0}
+.dc-t{font-size:14.5px;font-weight:700}
+.dc-s{font-size:11.5px;color:var(--sub2);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chev{color:#c8ccd3;flex:none}
+.danger-btn{
+  width:100%;margin-top:26px;border:1px solid #f0dcdc;background:#fff;color:var(--red);
+  font-size:14px;font-weight:600;padding:14px;border-radius:14px
+}
+.danger-btn:active{background:var(--red-soft)}
+
+/* 数据 / 安装 */
+.local-badge{
+  font-size:11.5px;font-weight:700;color:#1f9d63;background:#e9f7f0;
+  padding:5px 10px;border-radius:20px;flex:none
+}
+.row-btns{gap:10px}
+.row-btn{
+  flex:1;border:1px solid var(--line);background:#f8f9fa;color:#4d535d;
+  font-size:13.5px;font-weight:600;padding:11px;border-radius:11px
+}
+.row-btn:active{background:#eef0f3}
+.w-inp{
+  display:flex;align-items:center;gap:3px;background:#f5f6f8;border-radius:11px;
+  padding:7px 12px;flex:none
+}
+.w-inp input{
+  width:48px;border:0;background:transparent;outline:none;text-align:right;
+  font-size:16px;font-weight:800;color:var(--text);padding:0;
+  -moz-appearance:textfield
+}
+.w-inp input::-webkit-outer-spin-button,
+.w-inp input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.w-inp span{font-size:11.5px;color:var(--sub2);font-weight:600}
+.inline-ctl{display:flex;align-items:center;gap:8px;flex:none}
+.seg{display:flex;background:#f5f6f8;border-radius:11px;padding:3px;flex:none}
+.seg button{
+  border:0;background:transparent;border-radius:9px;padding:6px 12px;
+  font-size:13px;font-weight:700;color:#8b919c
+}
+.seg button.on{background:#fff;color:#c96f28;box-shadow:0 1px 3px rgba(16,24,40,.1)}
+.rest-pick{display:flex;gap:8px}
+.rest-pick button{
+  flex:1;border:0;background:#f5f6f8;border-radius:10px;padding:10px 0;
+  font-size:12.5px;font-weight:600;color:#5a616b
+}
+.rest-pick button.on{background:rgba(232,131,58,.13);color:#c96f28}
+
+/* ===== 多计划 ===== */
+.plan-tabs{
+  display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none
+}
+.plan-tabs::-webkit-scrollbar{display:none}
+.plan-tab{
+  flex:none;border:1px solid var(--line);background:#fff;border-radius:13px;
+  padding:9px 13px;display:flex;flex-direction:column;gap:3px;align-items:flex-start;
+  min-width:86px;text-align:left
+}
+.plan-tab b{font-size:13.5px;font-weight:700;color:var(--text);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plan-tab span{font-size:11px;color:var(--sub2)}
+.plan-tab.on{background:#fff;border-color:var(--primary);box-shadow:0 2px 8px rgba(232,131,58,.16)}
+.plan-tab.on b{color:#c96f28}
+.plan-tab.ptab-add{
+  min-width:44px;width:44px;align-items:center;justify-content:center;
+  font-size:19px;color:var(--primary);font-weight:400;border-style:dashed
+}
+.name-inp{
+  border:0;background:#f5f6f8;border-radius:10px;padding:9px 11px;
+  font-size:14px;font-weight:600;color:var(--text);text-align:right;
+  width:130px;outline:none
+}
+.name-inp:focus{box-shadow:0 0 0 2px rgba(232,131,58,.35);background:#fff}
+.pick-row{display:flex;align-items:center;gap:10px;padding:11px 16px;border-top:1px solid var(--line)}
+.pick-label{font-size:13.5px;font-weight:600;color:var(--text);flex:none;width:60px}
+.pick-chips{display:flex;gap:5px;flex:1;min-width:0}
+.pick-chips button{
+  flex:1;min-width:0;border:0;background:#f5f6f8;border-radius:8px;
+  height:32px;font-size:13px;font-weight:600;color:#5a616b;padding:0
+}
+.pick-chips button.on{background:rgba(232,131,58,.13);color:#c96f28}
+.del-plan{
+  width:100%;margin-top:8px;border:1px solid #f0dcdc;background:#fff;color:var(--red);
+  font-size:13px;font-weight:600;padding:12px;border-radius:12px
+}
+.del-plan:active{background:var(--red-soft)}
+
+/* ===== 每日安排的菜单分组 ===== */
+.sheet-scroll{max-height:60vh;overflow-y:auto;margin:0 -2px;-webkit-overflow-scrolling:touch}
+.menu-group{margin-top:6px}
+.menu-group:first-child{margin-top:0}
+.mg-hd{display:flex;align-items:center;gap:8px;padding:8px 2px 3px}
+.mg-name{font-size:11.5px;font-weight:700;color:var(--sub2);letter-spacing:.3px}
+.mg-meta{font-size:11px;color:#b6bcc5}
+.mg-use{
+  margin-left:auto;border:1px solid var(--line);background:#fff;
+  border-radius:7px;padding:3px 8px;font-size:10.5px;font-weight:600;color:#c96f28
+}
+.plain-badge{
+  font-size:14px;font-weight:800;color:#4d535d;background:#f3f4f6;
+  padding:6px 12px;border-radius:11px;flex:none
+}
+.kcal-badge{
+  font-size:14px;font-weight:800;color:#c96f28;background:var(--primary-soft);
+  padding:6px 12px;border-radius:11px;flex:none
+}
+.install-btn{
+  width:100%;margin-top:14px;border:0;border-radius:14px;padding:14px;
+  background:var(--primary);color:#fff;font-size:14.5px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 6px 18px rgba(232,131,58,.26)
+}
+.install-btn:active{transform:scale(.985)}
+.hint-card{
+  margin-top:14px;background:#fff;border-radius:14px;padding:14px 16px;
+  font-size:12.5px;color:#7b828c;line-height:1.7;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.hint-card b{color:#4d535d;font-weight:700}
+
+/* ---------- 数据异常提示 ---------- */
+.warn-card{
+  background:#fdeee2;border:1px solid #f6d3b8;border-radius:14px;
+  padding:13px 15px;margin-bottom:12px;font-size:12.5px;line-height:1.65;color:#8a4a17
+}
+.warn-card b{display:block;font-size:13.5px;color:#713707;font-weight:700;margin-bottom:3px}
+.warn-card .warn-act{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.warn-card .warn-act button{
+  border:0;border-radius:9px;padding:8px 13px;font-size:12.5px;font-weight:600;
+  background:#fff;color:#8a4a17;box-shadow:0 1px 2px rgba(16,24,40,.08);cursor:pointer
+}
+.warn-card .warn-act button.pri{background:#c0641f;color:#fff}
+.st-ok{color:#1f8a4c;font-weight:700}
+.st-bad{color:#b4461c;font-weight:700}
+.row-btn.ghost{background:#f2f4f7;color:#4d535d}
+
+/* ---------- 动作库 ---------- */
+.group-hd{display:flex;align-items:center;gap:8px;padding:20px 4px 9px}
+.group-hd b{font-size:13px;color:#5a616b;font-weight:700}
+.group-hd span{font-size:11.5px;color:var(--sub2)}
+.act-row{display:flex;align-items:center;padding:14px 16px;gap:12px}
+.act-row+.act-row{border-top:1px solid var(--line)}
+.act-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);flex:none}
+.act-name{flex:1;font-size:14.5px;font-weight:600}
+.self-tag{
+  display:inline-block;margin-left:7px;padding:1px 5px;border-radius:5px;
+  background:#eef0f3;color:#8b919c;font-size:10px;font-weight:700;vertical-align:1.5px
+}
+.act-del{border:0;background:transparent;color:#c8ccd3;font-size:12.5px;padding:4px 2px}
+.act-del:active{color:var(--red)}
+.add-act{
+  width:100%;margin-top:14px;border:1px dashed #d8dce2;background:transparent;
+  color:#6b7280;font-size:14px;font-weight:600;padding:14px;border-radius:14px
+}
+.add-act:active{background:#eef0f3}
+
+/* ---------- 对比 ---------- */
+.pick-card{padding:16px}
+.pick-grid{display:flex;gap:10px}
+.pick-item{flex:1}
+.pick-item label{display:block;font-size:11.5px;color:var(--sub);font-weight:600;margin-bottom:7px}
+.pick-item input{
+  width:100%;border:1px solid var(--line);background:#f7f8fa;border-radius:11px;
+  padding:11px 11px;font-size:13.5px;color:var(--text);outline:none
+}
+.quick{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.quick-hd{font-size:11px;color:var(--sub2);margin-top:14px;font-weight:600}
+.q-chip{
+  border:1px solid var(--line);background:#fff;border-radius:9px;
+  padding:6px 10px;font-size:11.5px;color:#5a616b;font-weight:600;
+  font-variant-numeric:tabular-nums
+}
+.q-chip.on{background:var(--primary-soft);border-color:#f6d5ba;color:#c96f28}
+.q-chip:active{background:#f3f4f6}
+
+.cmp-card{padding:16px 15px 12px;margin-top:12px}
+.cmp-name{font-size:15.5px;font-weight:800;letter-spacing:-.2px;margin-bottom:2px}
+.cmp-days{font-size:11.5px;color:var(--sub2);margin-bottom:12px}
+.cmp-table{width:100%;border-collapse:collapse}
+.cmp-table th{
+  font-size:11px;color:var(--sub2);font-weight:600;text-align:right;
+  padding:0 0 9px;font-variant-numeric:tabular-nums
+}
+.cmp-table th:first-child{text-align:left}
+.cmp-table td{
+  font-size:14px;padding:9px 0;border-top:1px solid var(--line);
+  text-align:right;font-variant-numeric:tabular-nums;font-weight:600
+}
+.cmp-table td:first-child{text-align:left;font-weight:500;color:#5a616b;font-size:13px}
+.cmp-table td.dim{color:#c2c7cf;font-weight:500}
+.up{color:var(--green)}
+.down{color:var(--red)}
+.same{color:#aab0ba;font-weight:500}
+.cmp-note{
+  margin-top:16px;background:#fff;border-radius:16px;padding:14px 16px;
+  font-size:12.5px;color:#7b828c;line-height:1.7;
+  box-shadow:0 1px 2px rgba(16,24,40,.04)
+}
+.cmp-note b{color:#4d535d;font-weight:700}
+.note-tag{
+  display:inline-block;font-size:11px;background:#f5f6f8;color:#8b919c;
+  padding:3px 8px;border-radius:7px;margin:4px 5px 0 0
+}
+
+/* ---------- tabbar ---------- */
+.tabbar{
+  position:fixed;bottom:0;left:50%;transform:translateX(-50%);
+  width:100%;max-width:440px;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--line);
+  display:flex;padding:8px 0 calc(8px + env(safe-area-inset-bottom));
+  z-index:50;
+}
+.tab{
+  flex:1;border:0;background:transparent;display:flex;flex-direction:column;
+  align-items:center;gap:4px;color:#b0b6bf;padding:2px 0
+}
+.tab svg{width:22px;height:22px}
+.tab span{font-size:10.5px;font-weight:600}
+.tab.on{color:var(--primary)}
+
+/* ---------- modal ---------- */
+.mask{position:fixed;inset:0;background:rgba(20,24,32,.35);z-index:100;animation:fade .18s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{
+  position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:100%;max-width:440px;
+  background:#fff;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));
+  z-index:101;animation:slideup .22s cubic-bezier(.2,.8,.3,1);
+  max-height:88vh;overflow-y:auto;-webkit-overflow-scrolling:touch
+}
+@keyframes slideup{from{transform:translate(-50%,100%)}to{transform:translate(-50%,0)}}
+.sheet-title{font-size:17px;font-weight:800;margin-bottom:16px}
+.sheet-inp{
+  width:100%;border:1px solid var(--line);background:#f7f8fa;border-radius:12px;
+  padding:13px 14px;font-size:15px;outline:none;color:var(--text)
+}
+.sheet-inp:focus{border-color:#e8833a;background:#fff}
+.grp-pick{display:flex;gap:7px;flex-wrap:wrap;margin-top:14px}
+.grp-pick button{
+  border:1px solid var(--line);background:#fff;border-radius:10px;
+  padding:8px 13px;font-size:13px;color:#5a616b;font-weight:600
+}
+.grp-pick button.on{background:var(--primary-soft);border-color:#f6d5ba;color:#c96f28}
+.sheet-btn{
+  width:100%;margin-top:18px;border:0;border-radius:13px;padding:14px;
+  background:var(--primary);color:#fff;font-size:15px;font-weight:700
+}
+
+/* 这天怎么安排 */
+.nav-action{
+  margin-left:auto;border:0;background:#fff;color:var(--primary);
+  font-size:13px;font-weight:700;padding:8px 15px;border-radius:20px;
+  box-shadow:0 1px 3px rgba(16,24,40,.08)
+}
+.nav-action:active{background:#fdf1e7}
+.tag.manual{background:#eef0f3;color:#7b828c}
+.sheet-sub{font-size:12.5px;color:var(--sub);margin:-8px 0 10px}
+.menu-item{
+  width:100%;display:flex;align-items:center;gap:10px;
+  padding:13px 2px;border:0;border-top:1px solid var(--line);
+  background:transparent;text-align:left;
+}
+.sheet .menu-item:first-of-type{border-top:0}
+.menu-item:active{background:#fafafa}
+.mi-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.mi-t{flex:1;min-width:0;font-size:14.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.menu-item.on .mi-t{color:var(--primary)}
+.mi-s{font-size:11.5px;color:var(--sub2);flex:none}
+.mi-check{color:var(--primary);font-weight:800;font-size:15px;flex:none}
+.menu-item.plain .mi-t{font-size:14px;font-weight:500;color:#5a616b}
+.sheet-cancel{
+  width:100%;margin-top:16px;border:0;border-radius:13px;padding:14px;
+  background:#f2f3f5;color:#5a616b;font-size:15px;font-weight:600
+}
+.sheet-cancel:active{background:#e8eaed}
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<script>
+/* =========================================================
+   训练日志 — 单文件应用
+   数据全部存在 localStorage
+   ========================================================= */
+
+/* ---------- 基础工具 ---------- */
+const pad2 = n => String(n).padStart(2, '0');
+const iso = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const parseISO = s => { const p = s.split('-').map(Number); return new Date(p[0], p[1]-1, p[2]); };
+const todayISO = () => iso(new Date());
+const dayDiff = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 86400000);
+const addDays = (s, n) => { const d = parseISO(s); d.setDate(d.getDate() + n); return iso(d); };
+const uid = () => Math.random().toString(36).slice(2, 9);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+const fmtN = v => (Math.round(v * 10) / 10).toString();
+const WEEK = ['周日','周一','周二','周三','周四','周五','周六'];
+
+/* ---------- 图标 ---------- */
+const ICON = {
+  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="3.5"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+  plan: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h11M4 12h7M4 17h11"/><circle cx="18" cy="7" r="2"/><circle cx="15" cy="17" r="2"/></svg>',
+  dumbbell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 7v10M17.5 7v10M3.5 9.5v5M20.5 9.5v5M6.5 12h11"/></svg>',
+  compare: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11M10 20V5M16 20v-6M22 20H2"/></svg>',
+  back: '<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>',
+  download: '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11M8 10.5l4 4 4-4M4 20h16"/></svg>'
+};
+
+/* ---------- 状态 ---------- */
+const KEY = 'fitlog_v1';
+const BAK_KEY = 'fitlog_v1_bak';
+const BROKEN_KEY = 'fitlog_v1_broken';
+const EXPORT_KEY = 'fitlog_last_export';
+
+/* ---------- 原生外壳（Android APK）----------
+   打包成 APK 时，原生侧会注入 window.AndroidBridge：
+   autoSave / hasAutosave / getAutosave / saveBackup / pickBackup / toast
+   网页版没有这个对象，一切照旧。 */
+const NATIVE = (typeof window !== 'undefined' && window.AndroidBridge) ? window.AndroidBridge : null;
+
+let storageOK = true;
+let saveFailed = false;      // 写入失败：多半是空间满 / 无痕模式 / 系统限制
+let saveBlocked = false;     // 数据读不出来时先锁住写入，避免把原数据盖掉
+let loadNotice = '';         // '' | 'recovered' | 'broken' | 'native'
+let brokenRaw = '';          // 读不出来的原始文本，留在内存里供导出
+try {
+  localStorage.setItem('__fitlog_test', '1');
+  localStorage.removeItem('__fitlog_test');
+} catch (e) { storageOK = false; }
+
+function readLS(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+function writeLS(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } }
+
+let lastAutoSaveAt = 0;
+function nativeAutoSave(force) {
+  if (!NATIVE || !NATIVE.autoSave) return;
+  const now = Date.now();
+  if (!force && now - lastAutoSaveAt < 3000) return;
+  lastAutoSaveAt = now;
+  try { NATIVE.autoSave(JSON.stringify(state)); } catch (e) {}
+}
+
+let state = null;
+
+/* 写入：失败要能被看见，不能静默吞掉（否则用户以为存了，其实没存）
+   原生版会额外写一份应用内快照，所以即使网页存储不可用也不会丢数据。 */
+function save() {
+  if (saveBlocked) return false;
+  let json = '';
+  try { json = JSON.stringify(state); } catch (e) { return false; }
+  let ok = false;
+  try {
+    localStorage.setItem(KEY, json);
+    saveFailed = false;
+    ok = true;
+  } catch (e) {
+    saveFailed = true;
+  }
+  if (NATIVE && NATIVE.autoSave) {
+    const n = Date.now();
+    if (n - lastAutoSaveAt > 3000) { lastAutoSaveAt = n; try { NATIVE.autoSave(json); } catch (e) {} }
+  }
+  return ok;
+}
+
+function defaultState() {
+  const mk = (name, group) => ({ id: uid(), name, group });
+  const bench = mk('杠铃卧推','胸'), inc = mk('上斜哑铃卧推','胸'), fly = mk('哑铃飞鸟','胸');
+  const pull = mk('引体向上','背'), lat = mk('高位下拉','背'), row = mk('杠铃划船','背');
+  const sq = mk('深蹲','腿'), lp = mk('腿举','腿'), rdl = mk('罗马尼亚硬拉','腿');
+  const ohp = mk('肩上推举','肩'), latr = mk('侧平举','肩');
+  const curl = mk('杠铃弯举','手臂'), push = mk('绳索下压','手臂');
+  const cr = mk('卷腹','核心');
+
+  const actions = [bench, inc, fly, pull, lat, row, sq, lp, rdl, ohp, latr, curl, push, cr];
+  const start = addDays(todayISO(), -4);
+
+  const plan = {
+    id: uid(),
+    name: '计划 1',
+    startDate: start,
+    trainDays: 3,
+    restDays: 1,
+    days: [
+      { name: '推', actionIds: [bench.id, inc.id, ohp.id, latr.id] },
+      { name: '拉', actionIds: [pull.id, lat.id, row.id, curl.id] },
+      { name: '腿', actionIds: [sq.id, lp.id, rdl.id, cr.id] }
+    ],
+    slots: [{ t: 'train', d: 0 }, { t: 'train', d: 1 }, { t: 'train', d: 2 }, { t: 'rest' }]
+  };
+
+  // 首次打开只给一套空计划：不再预填「示例记录」，
+  // 否则新设备一打开就看到自己的日期上有一堆已完成、还带重量的数据，很吓人
+  return {
+    actions,
+    plans: [plan],
+    activePlanId: plan.id,
+    logs: {},
+    overrides: {},
+    profile: {},
+    demo: true
+  };
+}
+/* ---------- 数据迁移：老备份 / 老本地数据都走这里 ---------- */
+function migrate(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.actions)) return null;
+  const s = raw;
+
+  // 旧版只有一个 state.plan，改成 plans 数组
+  if (!s.plans) {
+    const old = s.plan;
+    s.plans = old ? [{
+      id: uid(), name: old.name || '计划 1',
+      startDate: old.startDate, trainDays: old.trainDays, restDays: old.restDays,
+      days: old.days || []
+    }] : [{
+      id: uid(), name: '计划 1', startDate: todayISO(),
+      trainDays: 3, restDays: 1,
+      days: [{ name: '第 1 天', actionIds: [] }, { name: '第 2 天', actionIds: [] }, { name: '第 3 天', actionIds: [] }]
+    }];
+    delete s.plan;
+  }
+  if (!s.plans.length) s.plans = defaultState().plans;
+  s.plans.forEach(p => {
+    if (!p.id) p.id = uid();
+    if (!p.name) p.name = '计划';
+    if (!Array.isArray(p.days)) p.days = [];
+    if (!p.days.length) p.days.push({ name: '第 1 天', actionIds: [] });
+    p.days.forEach(d => { if (!Array.isArray(d.actionIds)) d.actionIds = []; });
+    normalizeSlots(p);
+  });
+  if (!s.activePlanId || !s.plans.some(p => p.id === s.activePlanId)) {
+    s.activePlanId = s.plans[0].id;
+  }
+
+  if (!s.logs || typeof s.logs !== 'object') s.logs = {};
+  if (!s.overrides || typeof s.overrides !== 'object') s.overrides = {};
+  if (!s.profile || typeof s.profile !== 'object') s.profile = {};
+  ['height', 'weight', 'bodyFat', 'sex', 'age'].forEach(k => {
+    if (s.profile[k] === undefined) {
+      s.profile[k] = { height: 175, weight: 70, bodyFat: '', sex: 'male', age: 30 }[k];
+    }
+  });
+  return s;
+}
+
+/* ---------- 启动：读本地数据（带自愈，绝不静默覆盖） ---------- */
+(function bootState() {
+  const raw = readLS(KEY);
+
+  // 原生版：浏览器存储被清掉时，用应用内留的自动快照兜底
+  if (!raw && NATIVE && NATIVE.hasAutosave && NATIVE.hasAutosave()) {
+    try {
+      const a = NATIVE.getAutosave();
+      const o = a ? migrate(JSON.parse(a)) : null;
+      if (o) {
+        state = o;
+        // 网页存储本来就不可用时，走快照是常态，不必每次开都弹提示
+        if (storageOK) loadNotice = 'native';
+        writeLS(KEY, a);
+        return;
+      }
+    } catch (e) {}
+  }
+
+  if (raw) {
+    let obj = null;
+    try { obj = migrate(JSON.parse(raw)); } catch (e) { obj = null; }
+    if (obj) {
+      state = obj;
+      // 顺手留一份「这次打开时是好的」快照；只在体积不大时留，避免占满配额
+      if (raw.length < 600000) writeLS(BAK_KEY, raw);
+      return;
+    }
+  }
+
+  if (!raw) {              // 第一次用，空身启动
+    state = defaultState();
+    return;
+  }
+
+  // 本地数据存在但读不出来：先试上次的快照
+  const bakRaw = readLS(BAK_KEY);
+  let bakObj = null;
+  if (bakRaw) { try { bakObj = migrate(JSON.parse(bakRaw)); } catch (e) { bakObj = null; } }
+  if (bakObj) {
+    state = bakObj;
+    loadNotice = 'recovered';
+    return;
+  }
+
+  // 都不行：把原始文本原样留一份，并锁住写入，等用户决定，别把原数据盖掉
+  brokenRaw = raw;
+  writeLS(BROKEN_KEY, raw);
+  loadNotice = 'broken';
+  saveBlocked = true;
+  state = defaultState();
+})();
+
+
+/* =========================================================
+   循环结构（slots）
+   一个 plan 里有两层：
+     days  —— 训练日的内容（第 1 天练什么、第 2 天练什么……）
+     slots —— 循环顺序，每一位要么是某个训练日 {t:'train', d:0}，要么是休息 {t:'rest'}
+   这样「练 3 休 1」「练 2 休 1 练 1 休 1」「推拉腿 ×2」都能表达，
+   训练日也不限 3 个，随便加到 12 个。
+   ========================================================= */
+function normalizeSlots(p) {
+  const ok = s => s && (s.t === 'rest' || (s.t === 'train' && Number.isFinite(+s.d)));
+  if (!Array.isArray(p.slots) || !p.slots.length || !p.slots.every(ok)) {
+    // 老数据只有 trainDays / restDays：按「先练 N 天，再休 M 天」还原顺序
+    const td = Math.max(1, Math.min(12, Number(p.trainDays) || 3));
+    const rd = Math.max(0, Math.min(12, Number(p.restDays) || 0));
+    const n = Math.max(1, Math.min(td, p.days.length || td));
+    p.slots = [];
+    for (let i = 0; i < n; i++) p.slots.push({ t: 'train', d: i });
+    for (let i = 0; i < rd; i++) p.slots.push({ t: 'rest' });
+  }
+  const last = p.days.length - 1;
+  p.slots = p.slots.slice(0, 16).map(s => s.t === 'train'
+    ? { t: 'train', d: Math.max(0, Math.min(last, Math.round(Number(s.d) || 0))) }
+    : { t: 'rest' });
+  if (!p.slots.length) p.slots = [{ t: 'train', d: 0 }];
+  syncCounts(p);
+}
+function syncCounts(p) {
+  const t = p.slots.filter(s => s.t === 'train').length;
+  p.trainDays = t;
+  p.restDays = p.slots.length - t;
+}
+function cycleLen(p) { return (p && p.slots && p.slots.length) || 1; }
+function usedDaySet(p) {
+  const set = {};
+  (p.slots || []).forEach(s => { if (s.t === 'train') set[s.d] = true; });
+  return set;
+}
+/* 循环顺序的文本形式，例如 'TTTR'，用于判断当前套用了哪个套餐 */
+function slotKey(p) {
+  return (p.slots || []).map(s => (s.t === 'train' ? 'T' : 'R')).join('');
+}
+/* 把 'TTTR' 这类顺序套到计划上：训练日按顺序复用已有一天，不够就新建 */
+function applyTemplate(p, key) {
+  const need = key.split('').filter(c => c === 'T').length;
+  while (p.days.length < need) p.days.push({ name: `第 ${p.days.length + 1} 天`, actionIds: [] });
+  let k = 0;
+  p.slots = key.split('').map(c => (c === 'T' ? { t: 'train', d: k++ } : { t: 'rest' }));
+  syncCounts(p);
+}
+const PLAN_TPLS = [
+  { key: 'TTTR', name: '3 练 1 休' },
+  { key: 'TTTTR', name: '4 练 1 休' },
+  { key: 'TTTTTR', name: '5 练 1 休' },
+  { key: 'TTTTTTR', name: '6 练 1 休' },
+  { key: 'TTTRTTTR', name: '推拉腿 ×2' },
+  { key: 'TR', name: '隔天练' },
+  { key: 'TTR', name: '练 2 休 1' },
+  { key: 'TTTRR', name: '练 3 休 2' }
+];
+
+/* ---------- 计划访问 ---------- */
+function activePlan() {
+  const ps = state.plans || [];
+  return ps.find(p => p.id === state.activePlanId) || ps[0];
+}
+function planById(id) {
+  return (state.plans || []).find(p => p.id === id) || activePlan();
+}
+function planDayOf(ci) {
+  if (!ci || ci.type !== 'train') return null;
+  const p = planById(ci.planId);
+  return (p && p.days && p.days[ci.index]) || null;
+}
+/* 「第 1 天 · 推」/ 名字没改时只显示「第 1 天」，避免「第 1 天 · 第 1 天」 */
+function dayLabel(ci, day) {
+  const n = ((day && day.name) || '').trim();
+  const base = `第 ${ci.index + 1} 天`;
+  if (!n || n === base || n === `第${ci.index + 1}天`) return base;
+  return `${base} · ${esc(n)}`;
+}
+
+/* =========================================================
+   热量估算
+   依据：
+   1) MET（代谢当量）取自 2024 Adult Compendium of Physical Activities
+      抗阻训练条目：
+        02050 自由重量 / 力量举 / 健美，高强度 ............ 6.0 MET
+        02052 深蹲、硬拉，慢速或爆发 ..................... 5.0 MET
+        02054 多动作、8~15 次、不同阻力 .................. 3.5 MET
+      Compendium 官方换算：1 MET = 1 kcal/kg/小时（对 70kg 参考人）
+   2) 个体化换算采用 PAL 体系：1 MET ≈ BMR/24（每小时），
+      即每分钟 MET × BMR ÷ 1440 —— 比固定 3.5 ml/kg/min 更能反映个体差异
+   3) BMR 用 Katch-McArdle（需体脂率）：BMR = 370 + 21.6 × 去脂体重
+      没有体脂率时退回 Mifflin-St Jeor：10W + 6.25H − 5A + (男 5 / 女 −161)
+   4) 时长按每组「次数 × 3 秒」+ 组间休息（可在计划页设定，默认 90 秒）累加，不含热身
+   5) 三段时间分开算，不能整体乘同一个 MET——否则会把坐着休息当成快走：
+        组内收缩   → 用上面选中的 Compendium 值
+        组间休息   → 2.0 MET（坐/站，心率尚未回落）
+        换动作     → 2.5 MET（走动、搬器械）
+      因此休息越久，整节平均 MET 越低，总消耗只小幅上升，而非线性暴涨。
+   ========================================================= */
+function clampNum(v, lo, hi, dft) {
+  const n = parseFloat(v);
+  if (!isFinite(n)) return dft;
+  return Math.min(hi, Math.max(lo, n));
+}
+function prof() {
+  const p = state.profile || {};
+  const bfRaw = p.bodyFat;
+  const bfEmpty = bfRaw === '' || bfRaw === null || bfRaw === undefined;
+  return {
+    h: clampNum(p.height, 120, 230, 175),
+    w: clampNum(p.weight, 30, 250, 70),
+    bf: bfEmpty ? null : clampNum(bfRaw, 3, 60, 18),
+    sex: p.sex === 'female' ? 'female' : 'male',
+    age: clampNum(p.age, 14, 90, 30),
+    rest: clampNum(p.restSec, 30, 300, 90)
+  };
+}
+function bodyWeight() { return prof().w; }
+function bmrInfo() {
+  const p = prof();
+  if (p.bf != null) {
+    const lbm = p.w * (1 - p.bf / 100);
+    return { bmr: Math.round(370 + 21.6 * lbm), formula: 'Katch-McArdle', lbm: Math.round(lbm * 10) / 10 };
+  }
+  const s = p.sex === 'male' ? 5 : -161;
+  return { bmr: Math.round(10 * p.w + 6.25 * p.h - 5 * p.age + s), formula: 'Mifflin-St Jeor', lbm: null };
+}
+function bmiInfo() {
+  const p = prof();
+  const bmi = p.w / Math.pow(p.h / 100, 2);
+  let label = '偏瘦';
+  if (bmi >= 30) label = '肥胖';
+  else if (bmi >= 25) label = '偏胖';
+  else if (bmi >= 18.5) label = '正常';
+  return { bmi: Math.round(bmi * 10) / 10, label };
+}
+/* 非训练时段的强度：休息时心率未完全回落，但仍远低于组内 */
+const MET_REST = 2.0;    // 组间坐着/站着休息
+const MET_TRANS = 2.5;   // 换动作、走动、搬器械
+
+function sessionStats(log) {
+  let sets = 0, volume = 0, workSec = 0, wSum = 0, wCount = 0, rSum = 0, exCount = 0;
+  ((log && log.entries) || []).forEach(e => {
+    let used = 0;
+    e.sets.forEach(s => {
+      const w = num(s.w), r = num(s.r);
+      if (!w && !r) return;
+      sets++; used++;
+      volume += w * r;
+      const reps = r || 10;
+      workSec += Math.min(90, Math.max(15, reps * 3));
+      if (w) { wSum += w; wCount++; }
+      rSum += reps;
+    });
+    if (used) exCount++;
+  });
+  const base = { sets: 0, volume: 0, minutes: 0, met: 0, metWork: 0, code: '', kcal: 0, gross: 0 };
+  if (!sets) return base;
+
+  const p = prof();
+  const bmr = bmrInfo().bmr;
+  const perMin = bmr / 1440;                    // 每分钟静息消耗
+
+  // 三段时间分开计：组内收缩 / 组间休息 / 换动作，各自用不同强度
+  const workMin = workSec / 60;
+  const restMin = ((sets - 1) * p.rest) / 60;
+  const transMin = (Math.max(0, exCount - 1) * 150) / 60;
+  const totalMin = workMin + restMin + transMin;
+  const minutes = Math.max(1, Math.round(totalMin));
+
+  // 依平均单组重量 / 体重 与平均次数，选最接近的 Compendium 条目
+  const ratio = wCount ? (wSum / wCount) / p.w : 0;
+  const avgR = rSum / sets;
+  let met = 3.5, code = '02054';
+  if (ratio >= 0.75 && avgR <= 8) { met = 6.0; code = '02050'; }
+  else if (ratio >= 0.45 || avgR <= 10) { met = 5.0; code = '02052'; }
+
+  // 组间休息 2.0 MET（坐/站休息，心率未完全回落），换动作 2.5 MET（走动、搬器械）
+  const metSum = met * workMin + MET_REST * restMin + MET_TRANS * transMin;
+
+  const gross = perMin * metSum;   // 总消耗
+  const net = perMin * ((met - 1) * workMin + (MET_REST - 1) * restMin + (MET_TRANS - 1) * transMin);
+  return {
+    sets, volume, minutes,
+    met: metSum / totalMin,   // 整节平均 MET，休息越多这个数越低
+    metWork: met, code,
+    gross: Math.round(gross),
+    kcal: Math.round(Math.max(0, net))
+  };
+}
+function kcalOf(log) { return sessionStats(log).kcal; }
+function kcalNote(st) {
+  return `组内 ${st.metWork} MET + 组间休息 ${MET_REST} MET 分段计算，共 ${st.minutes} 分钟（平均 ${st.met.toFixed(1)} MET）；已扣静息，含静息约 ${st.gross} kcal`;
+}
+
+/* ---------- 循环推算（支持多计划 + 手动覆盖某天） ---------- */
+function cycleInfoByPlan(dateStr, plan) {
+  const p = plan || activePlan();
+  const slots = (p && p.slots && p.slots.length) ? p.slots : [{ t: 'train', d: 0 }];
+  const n = slots.length;
+  const diff = dayDiff(p.startDate, dateStr);
+  const mod = ((diff % n) + n) % n;
+  const slot = slots[mod];
+  const base = { planId: p.id, planName: p.name, manual: false, pos: mod, cycle: n };
+  if (slot.t === 'train') {
+    const idx = Math.max(0, Math.min(slot.d, p.days.length - 1));
+    return Object.assign(base, { type: 'train', index: idx, label: `第 ${idx + 1} 天` });
+  }
+  return Object.assign(base, { type: 'rest', index: -1, label: '休息日' });
+}
+
+function cycleInfo(dateStr) {
+  // 手动安排优先：可以指向任意计划的任意一天
+  const ov = state.overrides && state.overrides[dateStr];
+  if (ov) {
+    const p = planById(ov.planId || state.activePlanId);
+    const base = { planId: p.id, planName: p.name, manual: true };
+    if (ov.type === 'rest') return Object.assign(base, { type: 'rest', index: -1, label: '休息日' });
+    const idx = Math.max(0, Math.min(ov.dayIndex || 0, p.days.length - 1));
+    return Object.assign(base, { type: 'train', index: idx, label: `第 ${idx + 1} 天` });
+  }
+
+  return cycleInfoByPlan(dateStr);
+}
+function nextTrainDate(dateStr) {
+  for (let i = 1; i <= 14; i++) {
+    const d = addDays(dateStr, i);
+    if (cycleInfo(d).type === 'train') return d;
+  }
+  return null;
+}
+
+/* ---------- 记录读写 ---------- */
+function hasData(dateStr) {
+  const l = state.logs[dateStr];
+  if (!l || !l.entries) return false;
+  return l.entries.some(e => e.sets.some(s => num(s.w) || num(s.r)));
+}
+function ensureEntries(dateStr) {
+  const ci = cycleInfo(dateStr);
+  if (!state.logs[dateStr]) state.logs[dateStr] = { entries: [] };
+  const log = state.logs[dateStr];
+  if (ci.type !== 'train') return log;
+
+  const day = planDayOf(ci);
+  const planned = ((day && day.actionIds) || []).slice();
+  const ref = ci.planId + '#' + ci.index;
+
+  /* 记录是挂在「某计划的某一天」下的。
+     换计划 / 换循环顺序 / 把动作移出这一天之后，旧记录不再属于这一天的计划，
+     不打标签就会冒出来当成今天的任务（还带着上次的完成状态）。
+     这里把它们标成 extra：数据一条不删，但不再占「计划内」的位置。 */
+  log.entries.forEach(e => { e.extra = !planned.includes(e.actionId); });
+  const mine = log.entries.filter(e => !e.extra);
+  const extras = log.entries.filter(e => e.extra);
+  const hasAny = mine.some(e => e.sets.some(s => num(s.w) || num(s.r)));
+
+  if (!hasAny) {
+    // 计划内的还没开练：按当前计划重建（保留原有空行的组数），计划外的挪到后面
+    const byAction = {};
+    mine.forEach(e => { byAction[e.actionId] = e; });
+    log.entries = planned.map(id => {
+      const a = state.actions.find(x => x.id === id);
+      if (!a) return null;
+      return byAction[id] || { actionId: a.id, name: a.name, sets: [{ w: '', r: '', done: false }] };
+    }).filter(Boolean).concat(extras);
+  } else {
+    // 已经开练：只补计划里新加的动作，不动已有数字
+    planned.forEach(id => {
+      if (log.entries.some(e => e.actionId === id && !e.extra)) return;
+      const a = state.actions.find(x => x.id === id);
+      if (a) log.entries.push({ actionId: a.id, name: a.name, sets: [{ w: '', r: '', done: false }] });
+    });
+    log.entries.sort((a, b) => (a.extra ? 1 : 0) - (b.extra ? 1 : 0));
+  }
+
+  log.dayRef = ref;
+  save();
+  return log;
+}
+/* 这一天的「计划内 / 计划外」拆分 */
+function splitEntries(log) {
+  const all = (log && log.entries) || [];
+  return { mine: all.filter(e => !e.extra), extras: all.filter(e => e.extra) };
+}
+function volumeOf(entry) {
+  return entry.sets.reduce((s, x) => s + num(x.w) * num(x.r), 0);
+}
+function entryDone(entry) {
+  const filled = entry.sets.filter(s => num(s.w) || num(s.r));
+  return filled.length > 0 && filled.every(s => s.done);
+}
+function lastRecord(actionId, beforeDate) {
+  const keys = Object.keys(state.logs).filter(k => k < beforeDate).sort().reverse();
+  for (const k of keys) {
+    const e = (state.logs[k].entries || []).find(x => x.actionId === actionId);
+    if (e) {
+      const sets = e.sets.filter(s => num(s.w) || num(s.r));
+      if (sets.length) {
+        const best = sets.reduce((a, b) => (num(b.w) > num(a.w) ? b : a));
+        return { date: k, sets, best };
+      }
+    }
+  }
+  return null;
+}
+
+/* ---------- 路由 ---------- */
+let route = { name: 'calendar' };
+let cursor = { y: new Date().getFullYear(), m: new Date().getMonth() };
+let ui = { modal: null, showExtra: {} };
+let cmp = { a: null, b: null };
+
+function go(name, params) {
+  route = Object.assign({ name }, params || {});
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 渲染入口 ---------- */
+const app = document.getElementById('app');
+
+/* ---------- PWA 状态 ---------- */
+let deferredPrompt = null;
+const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+  || (window.matchMedia && window.matchMedia('(display-mode: fullscreen)').matches)
+  || window.navigator.standalone === true;
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  if (route.name === 'plan') render(true);
+});
+window.addEventListener('appinstalled', () => {
+  deferredPrompt = null;
+  if (route.name === 'plan') render(true);
+});
+
+function render(keepScroll) {
+  const y = window.scrollY;
+  let html = '';
+  if (route.name === 'calendar') html = viewCalendar();
+  else if (route.name === 'day') html = viewDay(route.date);
+  else if (route.name === 'plan') html = viewPlan();
+  else if (route.name === 'planDay') html = viewPlanDay(route.idx);
+  else if (route.name === 'actions') html = viewActions();
+  else if (route.name === 'compare') html = viewCompare();
+
+  if (ui.modal) html += renderModal();
+  app.innerHTML = html;
+
+  if (keepScroll) window.scrollTo(0, y); else window.scrollTo(0, 0);
+}
+
+/* ---------- tabbar ---------- */
+function tabbar(active) {
+  const items = [
+    { k: 'calendar', label: '日历', icon: ICON.calendar },
+    { k: 'plan', label: '计划', icon: ICON.plan },
+    { k: 'actions', label: '动作', icon: ICON.dumbbell },
+    { k: 'compare', label: '对比', icon: ICON.compare }
+  ];
+  return '<nav class="tabbar">' + items.map(it =>
+    `<button class="tab ${active === it.k ? 'on' : ''}" data-act="tab" data-tab="${it.k}">${it.icon}<span>${it.label}</span></button>`
+  ).join('') + '</nav>';
+}
+
+/* =========================================================
+   视图：日历
+   ========================================================= */
+function viewCalendar() {
+  const t = todayISO();
+  const ci = cycleInfo(t);
+  const ap = activePlan();
+  const y = cursor.y, m = cursor.m;
+
+  const first = new Date(y, m, 1);
+  const startW = (first.getDay() + 6) % 7;          // 周一 = 0
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const prevDays = new Date(y, m, 0).getDate();
+
+  let cells = '';
+  for (let i = startW - 1; i >= 0; i--) {
+    cells += `<div class="cell out"><span class="num">${prevDays - i}</span><span class="mark"></span></div>`;
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${y}-${pad2(m + 1)}-${pad2(d)}`;
+    const info = cycleInfo(ds);
+    const logged = hasData(ds);
+    const cls = ['cell', ds === t ? 'today' : '', logged ? 'has-log' : '', info.manual ? 'manual' : ''].join(' ');
+    cells += `<button class="${cls}" data-act="openDay" data-date="${ds}">
+      <span class="num">${d}</span><span class="mark">${logged ? '✓' : ''}</span></button>`;
+  }
+  const used = startW + daysInMonth;
+  const tail = (7 - (used % 7)) % 7;
+  for (let i = 1; i <= tail; i++) {
+    cells += `<div class="cell out"><span class="num">${i}</span><span class="mark"></span></div>`;
+  }
+
+  // 今日任务
+  let todayBlock = '';
+  if (ci.type === 'train') {
+    const day = planDayOf(ci) || { name: '训练日', actionIds: [] };
+    const names = day.actionIds.map(id => (state.actions.find(a => a.id === id) || {}).name).filter(Boolean);
+    const log = state.logs[t];
+    // 只统计「今天计划里」的动作，换计划前留下的旧记录不算今天的进度
+    const plannedSet = new Set(day.actionIds);
+    const entries = (log && log.entries) || [];
+    const mine = entries.filter(e => plannedSet.has(e.actionId));
+    const extras = entries.length - mine.length;
+    const doneCount = mine.filter(entryDone).length;
+    const hasMine = mine.some(e => e.sets.some(s => num(s.w) || num(s.r)));
+    const tk = hasMine ? kcalOf(log) : 0;
+    const empty = !names.length;
+    todayBlock = `
+      <div class="card today-card">
+        <div class="tc-top">
+          <div class="tc-label">今日 · ${WEEK[new Date().getDay()]}</div>
+          <div class="tag">${dayLabel(ci, day)}</div>
+        </div>
+        <div class="tc-title">${empty ? '今天还没安排动作'
+          : `${names.length} 个动作${doneCount ? ` · 已完成 ${doneCount}` : ' 待训练'}`}</div>
+        ${empty ? '' : `<div class="tc-list">${names.slice(0, 6).map(n => `<span class="tc-pill">${esc(n)}</span>`).join('')}</div>`}
+        ${tk ? `<div class="tc-meta">活动消耗约 <b>${tk}</b> kcal${extras ? ` · 另有 ${extras} 条计划外记录` : ''}</div>`
+          : (extras ? `<div class="tc-meta">另有 ${extras} 条计划外记录</div>` : '')}
+        ${empty
+          ? `<button class="tc-btn" data-act="tab" data-tab="plan">去计划里安排动作</button>`
+          : `<button class="tc-btn" data-act="openDay" data-date="${t}">${hasData(t) ? '继续记录' : '开始记录'}</button>`}
+      </div>`;
+  } else {
+    const nt = nextTrainDate(t);
+    todayBlock = `
+      <div class="card today-card">
+        <div class="tc-top">
+          <div class="tc-label">今日 · ${WEEK[new Date().getDay()]}</div>
+          <div class="tag rest">休息日</div>
+        </div>
+        <div class="tc-title">好好恢复</div>
+        <div class="dh-sub" style="margin-top:8px">下次训练：${nt ? nt.slice(5).replace('-', '月') + '日' : '—'}</div>
+        ${hasData(t) ? `<div class="tc-meta">今天也练了 · 活动消耗约 <b>${kcalOf(state.logs[t])}</b> kcal</div>` : ''}
+      </div>`;
+  }
+
+  return `<div class="screen">
+    <div class="page-hd">
+      <div><h1>日历</h1><div class="hd-sub">${esc(ap.name)} · 每 ${cycleLen(ap)} 天一轮</div></div>
+      <button class="ghost-btn" data-act="goToday">今天</button>
+    </div>
+    ${dataWarnHTML()}
+    <div class="card cal">
+      <div class="cal-hd">
+        <div class="cal-title">${y}年${m + 1}月</div>
+        <div class="cal-nav">
+          <button data-act="prevMonth">‹</button>
+          <button data-act="nextMonth">›</button>
+        </div>
+      </div>
+      <div class="weekdays"><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span></div>
+      <div class="days">${cells}</div>
+      <div class="cal-legend">
+        <span><i class="ck">✓</i>已训练</span>
+        <span><i class="ring"></i>手动调整</span>
+      </div>
+    </div>
+    ${todayBlock}
+  </div>${tabbar('calendar')}`;
+}
+
+/* =========================================================
+   视图：某天详情
+   ========================================================= */
+function viewDay(ds) {
+  const ci = cycleInfo(ds);
+  const dt = parseISO(ds);
+  const title = `${dt.getMonth() + 1}月${dt.getDate()}日 ${WEEK[dt.getDay()]}`;
+  const isToday = ds === todayISO();
+
+  let body = '';
+  let headSub = '';
+
+  if (ci.type === 'rest') {
+    const nt = nextTrainDate(ds);
+    headSub = '休息日';
+    body = `<div class="card rest-hero">
+      <div class="rest-emoji">🌙</div>
+      <div class="rest-t">今天休息</div>
+      <div class="rest-s">肌肉在休息时生长。<br>吃够蛋白，睡够 8 小时。</div>
+      <div class="rest-next">下次训练 ${nt ? nt.slice(5).replace('-', '/') : '—'}</div>
+    </div>`;
+  } else {
+    const day = planDayOf(ci) || { name: '训练日', actionIds: [] };
+    const log = ensureEntries(ds);
+    const op = planById(ci.planId);
+    const crossPlan = op.id !== activePlan().id;
+    const dl = dayLabel(ci, day);
+    headSub = crossPlan ? `${op.name} · ${dl}` : dl;
+
+    const { mine, extras } = splitEntries(log);
+    const doneCount = mine.filter(entryDone).length;
+    const total = mine.length;
+    const pct = total ? Math.round(doneCount / total * 100) : 0;
+    const totalVol = log.entries.reduce((s, e) => s + volumeOf(e), 0);
+
+    let cards = '';
+    if (mine.length) cards = mine.map((entry, ei) => exCard(entry, ds, ei)).join('');
+    if (extras.length) cards += extrasBlock(extras, ds);
+
+    const st = sessionStats(log);
+    const emptyHint = total ? '' : `<div class="dh-sub" style="margin-top:10px">去「计划」里给${crossPlan ? esc(op.name) + ' ' : ''}第 ${ci.index + 1} 天添加动作，也可以直接在下面新建</div>`;
+
+    body = `
+      <div class="card day-hero">
+        <div class="dh-title">${total ? `${total} 个动作 · ${doneCount} 完成` : '今天还没安排动作'}</div>
+        ${emptyHint}
+        <div class="dh-stats">
+          <div class="dh-stat"><b data-kcal="${ds}">${st.kcal}</b><span>活动消耗 kcal</span></div>
+          <div class="dh-stat"><b data-total="${ds}">${Math.round(totalVol)}</b><span>总容量 kg</span></div>
+          <div class="dh-stat"><b data-min="${ds}">${st.minutes}</b><span>估算时长 分</span></div>
+        </div>
+        <div class="progress" style="margin-top:14px"><i style="width:${pct}%"></i></div>
+        <div class="dh-note" data-kcalnote="${ds}">${kcalNote(st)}</div>
+      </div>
+      ${cards}
+      <button class="add-act" data-act="openAddAction" data-plan="${ci.planId}" data-idx="${ci.index}">+ 新建动作，加入这一天</button>`;
+  }
+
+  return `<div class="screen">
+    <div class="nav-bar">
+      <button class="back" data-act="back">${ICON.back}</button>
+      <div class="nav-title">${title}</div>
+      <button class="nav-action" data-act="openDayMenu" data-date="${ds}">调整</button>
+    </div>
+    <div style="padding:0 2px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="tag ${ci.type === 'rest' ? 'rest' : ''}">${headSub}</span>
+      ${ci.manual ? '<span class="tag manual">手动安排</span>' : ''}
+    </div>
+    ${body}
+  </div>`;
+}
+
+function exCard(entry, ds, ei, extra) {
+  const last = lastRecord(entry.actionId, ds);
+  const vol = volumeOf(entry);
+  const lastTxt = last ? `上次 ${fmtN(num(last.best.w))}kg × ${last.best.r}` : '';
+  const rows = entry.sets.map((s, i) => setRow(entry, s, i, ds)).join('');
+  return `<div class="card ex-card">
+    <div class="ex-hd">
+      <div class="ex-name">${esc(entry.name)}${extra ? '<span class="self-tag">计划外</span>' : ''}</div>
+      ${lastTxt ? `<div class="ex-last">${lastTxt}</div>` : ''}
+    </div>
+    <div class="sets">${rows}</div>
+    <div class="ex-ft">
+      <button class="add-set" data-act="addSet" data-date="${ds}" data-ex="${entry.actionId}">+ 添加一组</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="ex-vol" data-vol="${ds}|${entry.actionId}">容量 ${Math.round(vol)} kg</span>
+        ${extra ? `<button class="ex-drop" data-act="dropEntry" data-date="${ds}" data-ex="${entry.actionId}">移出</button>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+/* 不属于当前计划这一天的旧记录：默认收起，不占「计划内」的进度 */
+function extrasBlock(list, ds) {
+  const open = !!(ui.showExtra && ui.showExtra[ds]);
+  const head = `<div class="card extra-hd">
+    <button class="extra-btn" data-act="toggleExtra" data-date="${ds}">
+      <div class="grow">
+        <div class="dc-t">另有 ${list.length} 条记录不在今天的计划里</div>
+        <div class="dc-s">换计划、改循环或把动作移出这一天之前留下的记录</div>
+      </div>
+      <div class="ex-last">${open ? '收起' : '展开'}</div>
+    </button>
+  </div>`;
+  if (!open) return head;
+  return head + list.map((e, i) => exCard(e, ds, i, true)).join('')
+    + `<button class="drop-all" data-act="dropAllExtra" data-date="${ds}">把这 ${list.length} 条全部移出这天</button>`;
+}
+
+function setRow(entry, s, i, ds) {
+  const done = s.done && (num(s.w) || num(s.r));
+  return `<div class="set-row ${done ? 'done' : ''}">
+    <button class="set-no" data-act="toggleSet" data-date="${ds}" data-ex="${entry.actionId}" data-set="${i}">${i + 1}</button>
+    <label class="inp-wrap">
+      <input class="inp" type="text" inputmode="decimal" placeholder="重量" value="${s.w === '' ? '' : esc(s.w)}"
+        data-field="w" data-date="${ds}" data-ex="${entry.actionId}" data-set="${i}">
+      <span class="suffix">kg</span>
+    </label>
+    <span class="mul">×</span>
+    <label class="inp-wrap">
+      <input class="inp" type="text" inputmode="numeric" placeholder="次数" value="${s.r === '' ? '' : esc(s.r)}"
+        data-field="r" data-date="${ds}" data-ex="${entry.actionId}" data-set="${i}">
+      <span class="suffix">次</span>
+    </label>
+    <button class="set-del" data-act="delSet" data-date="${ds}" data-ex="${entry.actionId}" data-set="${i}">✕</button>
+  </div>`;
+}
+
+/* =========================================================
+   视图：计划
+   ========================================================= */
+function viewPlan() {
+  const p = activePlan();
+  const loggedDates = Object.keys(state.logs).filter(hasData);
+  const loggedDays = loggedDates.length;
+  const totalKcal = loggedDates.reduce((s, k) => s + kcalOf(state.logs[k]), 0);
+  const pr = prof(), bi = bmrInfo(), bm = bmiInfo();
+  const kb = Math.max(1, Math.round(new Blob([JSON.stringify(state)]).size / 1024));
+  const slots = p.slots || [];
+  const slotChips = slots.map((s, i) => {
+    const on = s.t === 'train';
+    const d = on ? (p.days[s.d] || { name: '' }) : null;
+    return `<button class="chip ${on ? 'train' : 'rest'} slot-chip" data-act="editSlot" data-pos="${i}">
+      ${on ? 'D' + (s.d + 1) : '休'}${d && d.name ? `<i>${esc(d.name)}</i>` : ''}
+    </button>`;
+  }).join('');
+  const restN = slots.length - slots.filter(s => s.t === 'train').length;
+
+  const used = usedDaySet(p);
+  const dayCards = p.days.map((d, i) => {
+    const names = d.actionIds.map(id => (state.actions.find(a => a.id === id) || {}).name).filter(Boolean);
+    const txt = names.length ? `${names.length} 个动作 · ${names.slice(0, 3).join('、')}${names.length > 3 ? '…' : ''}` : '还没有安排动作';
+    const inCycle = !!used[i];
+    return `<div class="card day-card ${inCycle ? '' : 'unused'}" data-act="editPlanDay" data-idx="${i}">
+      <div class="day-badge">D${i + 1}</div>
+      <div class="grow">
+        <div class="dc-t">第 ${i + 1} 天 · ${esc(d.name)}${inCycle ? '' : '<span class="self-tag">未排入循环</span>'}</div>
+        <div class="dc-s">${esc(txt)}</div>
+      </div>
+      ${inCycle ? '' : `<button class="mini-btn" data-act="useDayInCycle" data-idx="${i}">排进去</button>`}
+      <div class="chev">${ICON.chev}</div>
+    </div>`;
+  }).join('');
+
+  const planTabs = state.plans.map(x => `
+    <button class="plan-tab ${x.id === p.id ? 'on' : ''}" data-act="switchPlan" data-id="${x.id}">
+      <b>${esc(x.name)}</b><span>${cycleLen(x)} 天一轮</span>
+    </button>`).join('') + `<button class="plan-tab ptab-add" data-act="openNewPlan">＋</button>`;
+
+  const curKey = slotKey(p);
+  const tplBtns = PLAN_TPLS.map(t =>
+    `<button class="tpl-btn ${curKey === t.key ? 'on' : ''}" data-act="applyTpl" data-key="${t.key}">${t.name}</button>`
+  ).join('');
+
+  return `<div class="screen">
+    <div class="page-hd"><div><h1>计划</h1><div class="hd-sub">可以建多套，每天自由选用</div></div></div>
+
+    <div class="plan-tabs">${planTabs}</div>
+
+    <div class="card">
+      <div class="row">
+        <div><div class="row-t">计划名称</div><div class="row-s">切换计划后，日历会按它重新推算</div></div>
+        <input class="name-inp" value="${esc(p.name)}" data-act="renamePlan" data-id="${p.id}" maxlength="12">
+      </div>
+      <div class="row">
+        <div><div class="row-t">循环起始日</div><div class="row-s">这一天算作循环的第 1 位</div></div>
+        <input type="date" class="date-inp" value="${p.startDate}" data-act="setStart">
+      </div>
+    </div>
+
+    <div class="slot-title"><b>循环顺序</b><span>点一位就能改 · 顺序自己排</span></div>
+    <div class="card" style="padding:14px 14px 12px">
+      <div class="cycle-preview" style="padding:0">${slotChips}</div>
+      <div class="slot-meta">每 ${slots.length} 天一轮 · ${slots.filter(s => s.t === 'train').length} 个训练日 · ${restN} 个休息日</div>
+      <div class="slot-tools">
+        <button data-act="addSlot" data-kind="train">＋ 训练日</button>
+        <button data-act="addSlot" data-kind="rest">＋ 休息日</button>
+      </div>
+    </div>
+
+    <div class="slot-title"><b>组合套餐</b><span>一键换成一整套排法</span></div>
+    <div class="tpl-wrap">${tplBtns}</div>
+
+    <div class="section-title">每个训练日练什么</div>
+    ${dayCards}
+    <button class="add-act" data-act="addDay">＋ 再加一个训练日（第 ${p.days.length + 1} 天）</button>
+    ${state.plans.length > 1 ? `<button class="del-plan" data-act="delPlan" data-id="${p.id}">删除「${esc(p.name)}」</button>` : ''}
+
+    <div class="section-title">身体数据</div>
+    <div class="card">
+      <div class="row">
+        <div><div class="row-t">身高</div></div>
+        <div class="w-inp">
+          <input type="number" inputmode="decimal" step="1" min="120" max="230"
+            value="${pr.h}" data-act="setHeight"><span>cm</span>
+        </div>
+      </div>
+      <div class="row">
+        <div><div class="row-t">体重</div></div>
+        <div class="w-inp">
+          <input type="number" inputmode="decimal" step="0.5" min="30" max="250"
+            value="${pr.w}" data-act="setWeight"><span>kg</span>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <div class="row-t">体脂率</div>
+          <div class="row-s">${pr.bf == null ? '不知道可以留空，会改用 Mifflin-St Jeor' : '已用去脂体重计算基础代谢'}</div>
+        </div>
+        <div class="w-inp">
+          <input type="number" inputmode="decimal" step="0.5" min="3" max="60" placeholder="—"
+            value="${pr.bf == null ? '' : pr.bf}" data-act="setBodyFat"><span>%</span>
+        </div>
+      </div>
+      <div class="row">
+        <div><div class="row-t">性别 / 年龄</div></div>
+        <div class="inline-ctl">
+          <div class="seg">
+            <button class="${pr.sex === 'male' ? 'on' : ''}" data-act="setSex" data-v="male">男</button>
+            <button class="${pr.sex === 'female' ? 'on' : ''}" data-act="setSex" data-v="female">女</button>
+          </div>
+          <div class="w-inp" style="padding:7px 10px">
+            <input type="number" inputmode="numeric" step="1" min="14" max="90"
+              value="${pr.age}" data-act="setAge"><span>岁</span>
+          </div>
+        </div>
+      </div>
+      <div class="row" style="flex-direction:column;align-items:stretch;gap:10px">
+        <div>
+          <div class="row-t">组间休息</div>
+          <div class="row-s">默认 90 秒，按平时的习惯选，只影响热量估算</div>
+        </div>
+        <div class="rest-pick">
+          ${[60, 90, 120, 180].map(v => `<button class="${pr.rest === v ? 'on' : ''}" data-act="setRest" data-v="${v}">${v} 秒</button>`).join('')}
+        </div>
+      </div>
+      <div class="row">
+        <div><div class="row-t">基础代谢 BMR</div><div class="row-s">${bi.formula}</div></div>
+        <div class="kcal-badge">${bi.bmr} kcal</div>
+      </div>
+      <div class="row">
+        <div><div class="row-t">BMI</div><div class="row-s">${bm.label}${bi.lbm ? ` · 去脂体重 ${bi.lbm} kg` : ''}</div></div>
+        <div class="plain-badge">${bm.bmi}</div>
+      </div>
+      <div class="row">
+        <div><div class="row-t">累计活动消耗</div><div class="row-s">${loggedDays} 个训练日合计</div></div>
+        <div class="kcal-badge">${totalKcal} kcal</div>
+      </div>
+      <div class="dh-note" style="padding:12px 16px 14px;border-top:1px solid var(--line)">
+        组内按 2024 Adult Compendium 抗阻条目（02054=3.5 / 02052=5.0 / 02050=6.0），组间休息按 2.0 MET、换动作按 2.5 MET 分段计算，1 MET ≈ BMR/24。休息越长整节平均强度越低，所以消耗只小幅上升。显示的是扣除同期静息的活动消耗，误差约 ±30%。
+      </div>
+    </div>
+
+    <div class="section-title">数据</div>
+    ${dataWarnHTML()}
+    <div class="card">
+      <div class="row">
+        <div>
+          <div class="row-t">只保存在这台手机上</div>
+          <div class="row-s">动作 ${state.actions.length} 个 · 计划 ${state.plans.length} 套 · 记录 ${loggedDays} 天 · 约 ${kb} KB</div>
+        </div>
+        <div class="local-badge">本地</div>
+      </div>
+      ${NATIVE ? `<div class="row">
+        <div>
+          <div class="row-t">系统清理保护</div>
+          <div class="row-s">记录存在应用内部，清理浏览器数据不影响它</div>
+        </div>
+        <div class="plain-badge st-ok">已保护</div>
+      </div>` : `<div class="row">
+        <div>
+          <div class="row-t">系统清理保护</div>
+          <div class="row-s">${persistState === 'granted'
+            ? '已获准长期保留，不会因为空间紧张被清掉'
+            : persistState === 'none'
+              ? '当前环境不支持长期保留，注意定期导出'
+              : '还没拿到长期保留许可，空间紧张时可能被系统清掉'}</div>
+        </div>
+        ${persistState === 'granted'
+          ? '<div class="plain-badge st-ok">已保护</div>'
+          : (persistState === 'none' ? '<div class="plain-badge">—</div>'
+            : '<button class="row-btn ghost" data-act="askPersist">申请</button>')}
+      </div>`}
+      <div class="row">
+        <div>
+          <div class="row-t">存在哪儿</div>
+          <div class="row-s">${NATIVE
+            ? '手机应用内部私有目录，文件管理器看不到；导出的备份在「下载」文件夹'
+            : '浏览器本地存储（localStorage），导出的备份在「下载」文件夹'}</div>
+        </div>
+        <div class="plain-badge">${NATIVE ? 'App 目录' : '浏览器'}</div>
+      </div>
+      <div class="row">
+        <div>
+          <div class="row-t">上次导出备份</div>
+          <div class="row-s">${exportHintText()}</div>
+        </div>
+        <div class="plain-badge">${lastExportText()}</div>
+      </div>
+      <div class="row row-btns">
+        <button class="row-btn" data-act="exportData">导出备份</button>
+        <button class="row-btn" data-act="importData">导入备份</button>
+      </div>
+      <div class="dh-note" style="padding:12px 16px 14px;border-top:1px solid var(--line)">
+        ${NATIVE
+          ? '日历记录、自建动作、训练计划和身体数据全都存在这台手机里，另外还有一份 autosave.json 自动存档（每次改动后自动更新），网页数据万一读不出来会自动用它恢复。关掉应用、手机重启、应用更新都不会丢；只有卸载应用或清除应用数据才会没有——卸载前先「导出备份」。'
+          : '日历记录、自建动作、训练计划和身体数据全都存在这台手机里，关掉应用、手机重启、应用更新都不会丢。只有换手机、换浏览器、清除浏览器数据或卸载时才会没有——先「导出备份」，换到新设备再「导入备份」就能完整搬过去。'}
+      </div>
+    </div>
+
+    ${installBlockHTML()}
+
+    <button class="danger-btn" data-act="clearLogs">清空所有训练记录</button>
+  </div>${tabbar('plan')}`;
+}
+
+/* ---------- 存储 / 备份状态 ---------- */
+let persistState = 'unknown';   // granted | denied | none | unknown
+function checkPersist() {
+  if (!(navigator.storage && navigator.storage.persisted)) { persistState = 'none'; return; }
+  navigator.storage.persisted().then(v => {
+    persistState = v ? 'granted' : 'denied';
+    if (route.name === 'plan') render(true);
+  }).catch(() => { persistState = 'none'; });
+}
+function lastExportText() {
+  const s = readLS(EXPORT_KEY);
+  if (!s) return '从来没有导出过';
+  const d = Math.round((parseISO(todayISO()) - parseISO(s)) / 86400000);
+  if (!(d >= 0)) return s;
+  return d === 0 ? '今天' : d === 1 ? '昨天' : `${d} 天前`;
+}
+function exportHintText() {
+  const s = readLS(EXPORT_KEY);
+  if (!s) return '建议先导出一份，换手机或清数据时可恢复';
+  const d = Math.round((parseISO(todayISO()) - parseISO(s)) / 86400000);
+  if (!(d >= 0)) return '建议定期导出一次';
+  return d > 30 ? '有点久了，建议再导出一份' : '备份是新的，出问题可以用它恢复';
+}
+
+function downloadJSON(text, name) {
+  const blob = new Blob([text], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+/* 导入备份的公共入口：网页版走文件选择器，原生版由 Java 侧读文件后回调 */
+function applyBackupText(txt) {
+  let obj;
+  try { obj = JSON.parse(txt); } catch (e) { alert('文件不是有效的 JSON'); return; }
+  if (!obj || !Array.isArray(obj.actions) || !(obj.plans || obj.plan) || !obj.logs) {
+    alert('这不是本应用的备份文件');
+    return;
+  }
+  if (!confirm('导入会覆盖当前全部数据，确定继续？')) return;
+  const merged = migrate(obj);
+  if (!merged) { alert('备份文件内容不完整'); return; }
+  state = merged;
+  loadNotice = '';
+  saveBlocked = false;
+  save();
+  render();
+  alert('已恢复备份');
+}
+window.__applyBackup = applyBackupText;
+window.__nativeSnapshot = function () { try { return JSON.stringify(state); } catch (e) { return ''; } };
+
+/* 顶部异常提示：数据读不出来 / 用到快照 / 保存失败 */
+function dataWarnHTML() {
+  if (loadNotice === 'broken') {
+    return `<div class="warn-card">
+      <b>本机数据没能读出来</b>
+      记录还在手机里，只是格式坏了。为免被覆盖，现在已暂停保存。
+      <div class="warn-act">
+        <button class="pri" data-act="exportBrokenRaw">导出原始数据</button>
+        <button data-act="acceptBroken">用空白数据重开</button>
+      </div>
+    </div>`;
+  }
+  if (loadNotice === 'native') {
+    return `<div class="warn-card">
+      <b>已用应用内的自动快照恢复</b>
+      系统清掉了应用的网页存储，好在应用自己留了一份快照，记录已经找回。建议现在去「计划 → 数据」导出一份备份。
+      <div class="warn-act"><button data-act="dismissNotice">知道了</button></div>
+    </div>`;
+  }
+  if (loadNotice === 'recovered') {
+    return `<div class="warn-card">
+      <b>已从快照恢复</b>
+      这次打开时数据没读出来，已自动回退到上一次的快照。最后几次改动可能没带上。
+      <div class="warn-act"><button data-act="dismissNotice">知道了</button></div>
+    </div>`;
+  }
+  if (saveFailed) {
+    if (NATIVE) {
+      return `<div class="warn-card">
+        <b>网页存储写入失败</b>
+        已自动改存到应用内的快照，记录不会丢；但建议现在导出一份备份更稳妥。
+        <div class="warn-act"><button class="pri" data-act="exportData">立即导出备份</button></div>
+      </div>`;
+    }
+    return `<div class="warn-card">
+      <b>保存失败了</b>
+      浏览器没能写入本机存储，多半是空间满了或被限制。先导出一份备份，别关掉页面。
+      <div class="warn-act"><button class="pri" data-act="exportData">立即导出备份</button></div>
+    </div>`;
+  }
+  return '';
+}
+
+function installBlockHTML() {
+  if (NATIVE) {
+    return `<div class="hint-card">已安装为手机应用，数据保存在这台手机上${storageOK ? '' : '（网页存储不可用，已改用应用内存储）'}</div>`;
+  }
+  if (!storageOK) {
+    return `<div class="hint-card" style="background:#fdf1e7;color:#a8561b"><b>存储被禁用</b>当前浏览器不允许本地存储，记录可能无法保存。请退出无痕模式，或用普通浏览器打开。</div>`;
+  }
+  if (isStandalone) {
+    return `<div class="hint-card">已作为独立应用运行，数据保存在本机</div>`;
+  }
+  if (deferredPrompt) {
+    return `<button class="install-btn" data-act="install">${ICON.download}<span>添加到手机桌面</span></button>`;
+  }
+  if (isIOS) {
+    return `<div class="hint-card"><b>想装到桌面？</b>在 Safari 底部点「分享」，选择「添加到主屏幕」，之后就能像 App 一样全屏打开。</div>`;
+  }
+  return '';
+}
+
+function viewPlanDay(idx) {
+  const p = activePlan();
+  const realIdx = Math.max(0, Math.min(idx, p.days.length - 1));
+  const day = p.days[realIdx];
+  if (!day) return `<div class="screen"><div class="nav-bar"><button class="back" data-act="back">${ICON.back}</button><div class="nav-title">计划</div></div></div>`;
+
+  const groups = {};
+  state.actions.forEach(a => { (groups[a.group] = groups[a.group] || []).push(a); });
+
+  let list = '';
+  Object.keys(groups).forEach(g => {
+    list += `<div class="group-hd"><b>${esc(g)}</b><span>${groups[g].length}</span></div>
+      <div class="card">${groups[g].map(a => {
+        const on = day.actionIds.includes(a.id);
+        return `<div class="act-row" data-act="togglePlanAction" data-idx="${realIdx}" data-id="${a.id}">
+          <div class="act-dot" style="background:${on ? 'var(--primary)' : '#dfe2e7'}"></div>
+          <div class="act-name">${esc(a.name)}</div>
+          <div style="color:${on ? 'var(--primary)' : '#dfe2e7'};font-size:15px;font-weight:800">${on ? '✓' : '+'}</div>
+        </div>`;
+      }).join('')}</div>`;
+  });
+
+  return `<div class="screen">
+    <div class="nav-bar">
+      <button class="back" data-act="back">${ICON.back}</button>
+      <div class="nav-title">第 ${realIdx + 1} 天 · ${esc(day.name)}</div>
+      <div class="nav-right">${day.actionIds.length} 个</div>
+    </div>
+    <div style="padding:0 4px 6px;font-size:12.5px;color:var(--sub)">点击动作即可加入 / 移出这一天</div>
+    <div class="card" style="padding:14px 16px;margin-bottom:6px">
+      <div class="row-s" style="margin-bottom:8px">这一天的名称</div>
+      <input class="sheet-inp" style="padding:10px 12px;font-size:14px" value="${esc(day.name)}"
+        data-act="renameDay" data-idx="${realIdx}" placeholder="例如：推日">
+    </div>
+    <button class="add-act" style="margin-top:0;margin-bottom:4px" data-act="openAddAction" data-plan="${p.id}" data-idx="${realIdx}">
+      + 新建动作，自动加入这一天
+    </button>
+    ${list}
+    ${p.days.length > 1 ? `<button class="del-plan" data-act="delDay" data-idx="${realIdx}">删除这一天</button>` : ''}
+  </div>`;
+}
+
+/* =========================================================
+   视图：动作库
+   ========================================================= */
+function viewActions() {
+  const groups = {};
+  state.actions.forEach(a => { (groups[a.group] = groups[a.group] || []).push(a); });
+
+  let list = '';
+  Object.keys(groups).forEach(g => {
+    list += `<div class="group-hd"><b>${esc(g)}</b><span>${groups[g].length} 个</span></div>
+      <div class="card">${groups[g].map(a =>
+        `<div class="act-row">
+          <div class="act-dot"></div>
+          <div class="act-name">${esc(a.name)}${a.custom ? '<span class="self-tag">自建</span>' : ''}</div>
+          <button class="act-del" data-act="delAction" data-id="${a.id}">删除</button>
+        </div>`).join('')}</div>`;
+  });
+
+  return `<div class="screen">
+    <div class="page-hd">
+      <div><h1>动作</h1><div class="hd-sub">共 ${state.actions.length} 个动作</div></div>
+      <button class="hd-add" data-act="openAddAction">+ 新增</button>
+    </div>
+    ${list}
+    <button class="add-act" data-act="openAddAction">+ 新增自定义动作</button>
+  </div>${tabbar('actions')}`;
+}
+
+/* =========================================================
+   视图：对比
+   ========================================================= */
+function initCmp() {
+  if (cmp.b) return;
+  const keys = Object.keys(state.logs).filter(hasData).sort();
+  if (keys.length >= 2) {
+    cmp.b = keys[keys.length - 1];
+    cmp.a = keys[keys.length - 2];
+  } else if (keys.length === 1) {
+    cmp.b = keys[0];
+    cmp.a = addDays(cmp.b, -cycleLen(activePlan()));
+  } else {
+    cmp.b = todayISO();
+    cmp.a = addDays(cmp.b, -4);
+  }
+}
+
+function summarize(dateStr) {
+  const log = state.logs[dateStr];
+  const map = {};
+  if (!log || !log.entries) return map;
+  log.entries.forEach(e => {
+    const sets = e.sets.filter(s => num(s.w) || num(s.r));
+    if (!sets.length) return;
+    const maxW = Math.max.apply(null, sets.map(s => num(s.w)));
+    const totalR = sets.reduce((a, s) => a + num(s.r), 0);
+    const volume = sets.reduce((a, s) => a + num(s.w) * num(s.r), 0);
+    map[e.actionId] = { name: e.name, setCount: sets.length, maxW, totalR, volume };
+  });
+  return map;
+}
+
+function viewCompare() {
+  initCmp();
+  const A = summarize(cmp.a), B = summarize(cmp.b);
+  const idsA = Object.keys(A), idsB = Object.keys(B);
+  const common = idsA.filter(id => B[id]);
+  const onlyA = idsA.filter(id => !B[id]);
+  const onlyB = idsB.filter(id => !A[id]);
+
+  const shortDate = s => s ? s.slice(5).replace('-', '/') : '—';
+  const dayTag = s => {
+    if (!s) return '';
+    const ci = cycleInfo(s);
+    return ci.type === 'train' ? `第${ci.index + 1}天` : '休息';
+  };
+
+  const recent = Object.keys(state.logs).filter(hasData).sort().reverse().slice(0, 6);
+  const quickChips = recent.map(k =>
+    `<button class="q-chip ${cmp.a === k ? 'on' : ''}" data-act="setCmp" data-which="a" data-date="${k}">${shortDate(k)}</button>`
+  ).join('');
+
+  let cards = '';
+  if (!cmp.a || !cmp.b) {
+    cards = `<div class="card empty"><b>先选两个日期</b>选出要对比的两天</div>`;
+  } else if (!common.length) {
+    cards = `<div class="card empty"><b>这两天没有可对比的动作</b>只有相同动作才能对比。去记录一些训练吧。</div>`;
+  } else {
+    cards = common.map(id => {
+      const a = A[id], b = B[id];
+      const row = (label, va, vb, unit, better) => {
+        const diff = vb - va;
+        let cls = 'same', txt = '—';
+        if (Math.abs(diff) > 0.001) {
+          const up = diff > 0;
+          cls = better === 'down' ? (up ? 'down' : 'up') : (up ? 'up' : 'down');
+          txt = (up ? '+' : '') + fmtN(diff) + unit;
+        }
+        return `<tr><td>${label}</td><td>${fmtN(va)}${unit}</td><td>${fmtN(vb)}${unit}</td><td class="${cls}">${txt}</td></tr>`;
+      };
+      return `<div class="card cmp-card">
+        <div class="cmp-name">${esc(a.name)}</div>
+        <div class="cmp-days">${shortDate(cmp.a)} · ${dayTag(cmp.a)} &nbsp;→&nbsp; ${shortDate(cmp.b)} · ${dayTag(cmp.b)}</div>
+        <table class="cmp-table">
+          <tr><th></th><th>${shortDate(cmp.a)}</th><th>${shortDate(cmp.b)}</th><th>变化</th></tr>
+          ${row('最大重量', a.maxW, b.maxW, 'kg')}
+          ${row('总次数', a.totalR, b.totalR, '次')}
+          ${row('总容量', Math.round(a.volume), Math.round(b.volume), 'kg')}
+          ${row('组数', a.setCount, b.setCount, '组')}
+        </table>
+      </div>`;
+    }).join('');
+  }
+
+  const noteBits = [];
+  if (onlyA.length) noteBits.push(`<div><b>仅 ${shortDate(cmp.a)} 有：</b>${onlyA.map(id => `<span class="note-tag">${esc(A[id].name)}</span>`).join('')}</div>`);
+  if (onlyB.length) noteBits.push(`<div style="margin-top:8px"><b>仅 ${shortDate(cmp.b)} 有：</b>${onlyB.map(id => `<span class="note-tag">${esc(B[id].name)}</span>`).join('')}</div>`);
+
+  return `<div class="screen">
+    <div class="page-hd"><div><h1>对比</h1><div class="hd-sub">同动作才能比，不同动作不参与</div></div></div>
+
+    <div class="card pick-card">
+      <div class="pick-grid">
+        <div class="pick-item">
+          <label>日期 A</label>
+          <input type="date" value="${cmp.a || ''}" data-act="cmpA">
+        </div>
+        <div class="pick-item">
+          <label>日期 B</label>
+          <input type="date" value="${cmp.b || ''}" data-act="cmpB">
+        </div>
+      </div>
+      ${quickChips ? `<div class="quick-hd">最近记录 · 点击填入日期 A</div><div class="quick">${quickChips}</div>` : ''}
+    </div>
+
+    ${cards}
+
+    ${(onlyA.length || onlyB.length) ? `<div class="cmp-note">
+      <div style="font-weight:700;color:#4d535d;margin-bottom:4px">这些动作没有对应项，无法对比</div>
+      ${noteBits.join('')}
+    </div>` : ''}
+  </div>${tabbar('compare')}`;
+}
+
+/* =========================================================
+   弹窗：新增动作
+   ========================================================= */
+const GROUPS = ['胸', '背', '腿', '肩', '手臂', '核心', '有氧', '其他'];
+function renderModal() {
+  if (!ui.modal) return '';
+
+  if (ui.modal.type === 'dayMenu') {
+    const ds = ui.modal.date;
+    const ci = cycleInfo(ds);
+    const ap = activePlan();
+    const dt = parseISO(ds);
+    const multi = state.plans.length > 1;
+
+    const groups = state.plans.map(pl => {
+      const items = pl.days.map((d, i) => {
+        const on = ci.type === 'train' && ci.planId === pl.id && ci.index === i;
+        const sub = d.actionIds.length ? `${d.actionIds.length} 个动作` : '未安排';
+        return `<button class="menu-item ${on ? 'on' : ''}" data-act="setDayType" data-date="${ds}" data-kind="train" data-plan="${pl.id}" data-idx="${i}">
+          <span class="mi-dot" style="background:${on ? 'var(--primary)' : '#e3e6ea'}"></span>
+          <span class="mi-t">第 ${i + 1} 天 · ${esc(d.name)}</span>
+          <span class="mi-s">${sub}</span>
+          ${on ? '<span class="mi-check">✓</span>' : ''}
+        </button>`;
+      }).join('');
+      return `<div class="menu-group">
+        <div class="mg-hd">
+          <span class="mg-name">${esc(pl.name)}</span>
+          <span class="mg-meta">${cycleLen(pl)} 天一轮 · ${pl.days.length} 个训练日</span>
+          ${pl.id !== ap.id ? `<button class="mg-use" data-act="usePlanFrom" data-plan="${pl.id}" data-date="${ds}">从此按它循环</button>` : ''}
+        </div>
+        ${items}
+      </div>`;
+    }).join('');
+
+    const restOn = ci.type === 'rest';
+    return `<div class="mask" data-act="closeModal"></div>
+      <div class="sheet">
+        <div class="sheet-title">这天怎么安排</div>
+        <div class="sheet-sub">${dt.getMonth() + 1}月${dt.getDate()}日 ${WEEK[dt.getDay()]}${multi ? ' · 可跨计划导入' : ''}</div>
+        <div class="sheet-scroll">
+          ${groups}
+          <div class="menu-group">
+            <button class="menu-item ${restOn ? 'on' : ''}" data-act="setDayType" data-date="${ds}" data-kind="rest">
+              <span class="mi-dot" style="background:${restOn ? '#8b919c' : '#e3e6ea'}"></span>
+              <span class="mi-t">这天休息</span>
+              <span class="mi-s">不训练</span>
+              ${restOn ? '<span class="mi-check" style="color:#8b919c">✓</span>' : ''}
+            </button>
+            ${ci.manual ? `<button class="menu-item plain" data-act="clearDayOverride" data-date="${ds}">
+              <span class="mi-dot" style="background:transparent"></span>
+              <span class="mi-t">恢复按计划</span>
+              <span class="mi-s">回到循环推算的结果</span>
+            </button>` : ''}
+            <button class="menu-item plain" data-act="restartCycle" data-date="${ds}">
+              <span class="mi-dot" style="background:transparent"></span>
+              <span class="mi-t">从这天起按「${esc(ap.name)}」循环</span>
+              <span class="mi-s">把它当第 1 天</span>
+            </button>
+          </div>
+        </div>
+        <button class="sheet-cancel" data-act="closeModal">取消</button>
+      </div>`;
+  }
+
+  if (ui.modal.type === 'addAction') {
+    const fd = ui.modal.forDay;
+    const tp = ui.modal.forPlan ? planById(ui.modal.forPlan) : null;
+    const dayObj = (tp && fd != null) ? tp.days[fd] : null;
+    const sub = dayObj
+      ? `添加后会自动加入「第 ${fd + 1} 天 · ${esc(dayObj.name)}」`
+      : '自己起个名字，选一个部位，之后就能在训练里用了';
+    return `<div class="mask" data-act="closeModal"></div>
+      <div class="sheet">
+        <div class="sheet-title">新增动作</div>
+        <div class="sheet-sub">${sub}</div>
+        <input class="sheet-inp" id="newActionName" placeholder="例如：哑铃卧推" value="${esc(ui.modal.name || '')}">
+        <div class="row-s" style="margin:16px 0 0;font-size:12px;color:var(--sub)">部位</div>
+        <div class="grp-pick">
+          ${GROUPS.map(g => `<button class="${ui.modal.group === g ? 'on' : ''}" data-act="pickGroup" data-g="${g}">${g}</button>`).join('')}
+        </div>
+        <button class="sheet-btn" data-act="confirmAddAction">添加</button>
+        <button class="sheet-cancel" data-act="closeModal">取消</button>
+      </div>`;
+  }
+
+  if (ui.modal.type === 'slot') {
+    const p = planById(ui.modal.planId);
+    const pos = Math.max(0, Math.min(ui.modal.pos, p.slots.length - 1));
+    const cur = p.slots[pos];
+    const dayItems = p.days.map((d, i) => {
+      const on = cur.t === 'train' && cur.d === i;
+      return `<button class="menu-item ${on ? 'on' : ''}" data-act="setSlot" data-pos="${pos}" data-d="${i}">
+        <span class="mi-dot" style="background:${on ? 'var(--primary)' : '#e3e6ea'}"></span>
+        <span class="mi-t">第 ${i + 1} 天 · ${esc(d.name)}</span>
+        <span class="mi-s">${d.actionIds.length ? d.actionIds.length + ' 个动作' : '未安排'}</span>
+        ${on ? '<span class="mi-check">✓</span>' : ''}
+      </button>`;
+    }).join('');
+    const restOn = cur.t === 'rest';
+    return `<div class="mask" data-act="closeModal"></div>
+      <div class="sheet">
+        <div class="sheet-title">循环第 ${pos + 1} 位</div>
+        <div class="sheet-sub">选一个训练日放这里，或者设成休息</div>
+        <div class="sheet-scroll">
+          <div class="menu-group">${dayItems}
+            <button class="menu-item ${restOn ? 'on' : ''}" data-act="setSlot" data-pos="${pos}" data-d="-1">
+              <span class="mi-dot" style="background:${restOn ? '#8b919c' : '#e3e6ea'}"></span>
+              <span class="mi-t">休息</span>
+              <span class="mi-s">不训练</span>
+              ${restOn ? '<span class="mi-check" style="color:#8b919c">✓</span>' : ''}
+            </button>
+          </div>
+        </div>
+        ${p.slots.length > 1 ? `<button class="del-plan" data-act="delSlot" data-pos="${pos}">删掉这一位（循环变 ${p.slots.length - 1} 天）</button>` : ''}
+        <button class="sheet-cancel" data-act="closeModal">取消</button>
+      </div>`;
+  }
+
+  if (ui.modal.type === 'newPlan') {
+    const tplBtns = PLAN_TPLS.map(t =>
+      `<button class="tpl-btn ${ui.modal.tpl === t.key ? 'on' : ''}" data-act="pickNewTpl" data-key="${t.key}">${t.name}</button>`
+    ).join('');
+    return `<div class="mask" data-act="closeModal"></div>
+      <div class="sheet">
+        <div class="sheet-title">新建训练计划</div>
+        <div class="sheet-sub">先挑一个组合，建好之后顺序和训练日都能再改</div>
+        <input class="sheet-inp" id="newPlanName" placeholder="计划名称，例如：推拉腿 / 上下肢" value="${esc(ui.modal.name || '')}">
+        <div class="row-s" style="margin:16px 0 8px;font-size:12px;color:var(--sub)">循环怎么排</div>
+        <div class="tpl-wrap">${tplBtns}</div>
+        <button class="sheet-btn" data-act="confirmNewPlan">创建</button>
+        <button class="sheet-cancel" data-act="closeModal">取消</button>
+      </div>`;
+  }
+  return '';
+}
+
+/* =========================================================
+   事件
+   ========================================================= */
+app.addEventListener('click', e => {
+  const el = e.target.closest('[data-act]');
+  if (!el) return;
+  const act = el.dataset.act;
+
+  // ---- 防止误触 input 的 data-act ----
+  if (el.tagName === 'INPUT') return;
+
+  switch (act) {
+    case 'tab':
+      go(el.dataset.tab);
+      break;
+    case 'back':
+      if (route.name === 'planDay') go('plan');
+      else go('calendar');
+      break;
+    case 'prevMonth':
+      cursor.m--; if (cursor.m < 0) { cursor.m = 11; cursor.y--; }
+      render();
+      break;
+    case 'nextMonth':
+      cursor.m++; if (cursor.m > 11) { cursor.m = 0; cursor.y++; }
+      render();
+      break;
+    case 'goToday': {
+      const d = new Date();
+      cursor = { y: d.getFullYear(), m: d.getMonth() };
+      render();
+      break;
+    }
+    case 'openDay':
+      go('day', { date: el.dataset.date });
+      break;
+
+    /* ---- 手动安排某天 ---- */
+    case 'openDayMenu':
+      ui.modal = { type: 'dayMenu', date: el.dataset.date };
+      render(true);
+      break;
+    case 'setDayType': {
+      const ds = el.dataset.date;
+      const kind = el.dataset.kind;
+      const pid = el.dataset.plan || state.activePlanId;
+      if (kind === 'rest') {
+        const base = cycleInfoByPlan(ds);
+        if (base.type === 'rest') delete state.overrides[ds];
+        else state.overrides[ds] = { type: 'rest' };
+      } else {
+        const idx = +el.dataset.idx;
+        const base = cycleInfoByPlan(ds);
+        // 与「当前计划的默认结果」完全一致时不留下 override
+        if (base.type === 'train' && base.index === idx && pid === base.planId) delete state.overrides[ds];
+        else state.overrides[ds] = { type: 'train', planId: pid, dayIndex: idx };
+      }
+      save();
+      ui.modal = null;
+      render(true);
+      break;
+    }
+    case 'usePlanFrom': {
+      const ds = el.dataset.date;
+      const p = planById(el.dataset.plan);
+      if (confirm(`从这天起改按「${p.name}」循环？\n\n日历上之后的日子会跟着重排，已经记录的训练数据不受影响。`)) {
+        state.activePlanId = p.id;
+        p.startDate = ds;
+        delete state.overrides[ds];
+        save();
+        ui.modal = null;
+        render(true);
+      }
+      break;
+    }
+    case 'clearDayOverride': {
+      delete state.overrides[el.dataset.date];
+      save();
+      ui.modal = null;
+      render(true);
+      break;
+    }
+    case 'restartCycle': {
+      const ds = el.dataset.date;
+      const ap = activePlan();
+      if (confirm(`从这天起按「${ap.name}」循环？\n\n这一天算作第 1 天，之后的日子会按新循环推算，已经记录的训练数据不受影响。`)) {
+        ap.startDate = ds;
+        delete state.overrides[ds];
+        save();
+        ui.modal = null;
+        render(true);
+      }
+      break;
+    }
+
+    /* ---- 记录编辑 ---- */
+    case 'addSet': {
+      const ds = el.dataset.date, ex = el.dataset.ex;
+      const log = state.logs[ds];
+      const entry = log && log.entries.find(x => x.actionId === ex);
+      if (!entry) break;
+      const lastSet = entry.sets[entry.sets.length - 1];
+      entry.sets.push({ w: lastSet ? lastSet.w : '', r: lastSet ? lastSet.r : '', done: false });
+      save();
+      render(true);
+      break;
+    }
+    case 'delSet': {
+      const ds = el.dataset.date, ex = el.dataset.ex, i = +el.dataset.set;
+      const log = state.logs[ds];
+      const entry = log && log.entries.find(x => x.actionId === ex);
+      if (!entry || entry.sets.length <= 1) break;
+      entry.sets.splice(i, 1);
+      save();
+      render(true);
+      break;
+    }
+    case 'toggleSet': {
+      const ds = el.dataset.date, ex = el.dataset.ex, i = +el.dataset.set;
+      const log = state.logs[ds];
+      const entry = log && log.entries.find(x => x.actionId === ex);
+      if (!entry) break;
+      const s = entry.sets[i];
+      s.done = !s.done;
+      save();
+      render(true);
+      break;
+    }
+    /* ---- 不属于今天计划的旧记录 ---- */
+    case 'toggleExtra': {
+      const ds = el.dataset.date;
+      ui.showExtra[ds] = !ui.showExtra[ds];
+      render(true);
+      break;
+    }
+    case 'dropEntry': {
+      const ds = el.dataset.date, ex = el.dataset.ex;
+      const log = state.logs[ds];
+      if (!log) break;
+      const entry = log.entries.find(x => x.actionId === ex && x.extra);
+      if (!entry) break;
+      if (!confirm(`把「${entry.name}」从 ${ds.slice(5).replace('-', '/')} 这天的记录里移出？\n\n只影响这一天，别的日子不受影响。`)) break;
+      log.entries = log.entries.filter(x => x !== entry);
+      save();
+      render(true);
+      break;
+    }
+    case 'dropAllExtra': {
+      const ds = el.dataset.date;
+      const log = state.logs[ds];
+      if (!log) break;
+      const n = log.entries.filter(x => x.extra).length;
+      if (!n) break;
+      if (!confirm(`把这 ${n} 条计划外记录从 ${ds.slice(5).replace('-', '/')} 移出？\n\n只影响这一天，别的日子和计划都不受影响。`)) break;
+      log.entries = log.entries.filter(x => !x.extra);
+      save();
+      render(true);
+      break;
+    }
+
+    /* ---- 计划 ---- */
+    case 'switchPlan':
+      state.activePlanId = el.dataset.id;
+      save(); render();
+      break;
+    /* ---- 循环顺序 ---- */
+    case 'editSlot':
+      ui.modal = { type: 'slot', planId: activePlan().id, pos: +el.dataset.pos };
+      render(true);
+      break;
+    case 'setSlot': {
+      const p = activePlan();
+      const pos = +el.dataset.pos;
+      const d = +el.dataset.d;
+      if (!p.slots[pos]) break;
+      p.slots[pos] = d < 0 ? { t: 'rest' } : { t: 'train', d };
+      syncCounts(p);
+      save();
+      ui.modal = null;
+      render(true);
+      break;
+    }
+    case 'delSlot': {
+      const p = activePlan();
+      const pos = +el.dataset.pos;
+      if (p.slots.length <= 1) break;
+      p.slots.splice(pos, 1);
+      syncCounts(p);
+      save();
+      ui.modal = null;
+      render(true);
+      break;
+    }
+    case 'addSlot': {
+      const p = activePlan();
+      if (p.slots.length >= 16) { alert('一轮最多 16 天，够用了'); break; }
+      if (el.dataset.kind === 'rest') {
+        p.slots.push({ t: 'rest' });
+      } else {
+        // 优先复用还没排进循环的训练日，不够就新建一天
+        const used = usedDaySet(p);
+        let d = -1;
+        for (let i = 0; i < p.days.length; i++) if (!used[i]) { d = i; break; }
+        if (d < 0) {
+          if (p.days.length >= 12) { alert('训练日最多 12 个'); break; }
+          p.days.push({ name: `第 ${p.days.length + 1} 天`, actionIds: [] });
+          d = p.days.length - 1;
+        }
+        p.slots.push({ t: 'train', d });
+      }
+      syncCounts(p);
+      save(); render(true);
+      break;
+    }
+    case 'useDayInCycle': {
+      const p = activePlan();
+      p.slots.push({ t: 'train', d: +el.dataset.idx });
+      syncCounts(p);
+      save(); render(true);
+      break;
+    }
+    case 'applyTpl': {
+      const p = activePlan();
+      const key = el.dataset.key;
+      const tpl = PLAN_TPLS.find(t => t.key === key);
+      if (!tpl) break;
+      const need = key.split('').filter(c => c === 'T').length;
+      const extra = Math.max(0, need - p.days.length);
+      const msg = `把「${p.name}」的循环换成「${tpl.name}」？`
+        + (extra ? `\n\n会自动新增 ${extra} 个训练日（动作先空着，之后补）。` : '')
+        + `\n\n已有训练日的动作和已记录的数据都不会丢。`;
+      if (!confirm(msg)) break;
+      applyTemplate(p, key);
+      save(); render(true);
+      break;
+    }
+    case 'addDay': {
+      const p = activePlan();
+      if (p.days.length >= 12) { alert('训练日最多 12 个'); break; }
+      p.days.push({ name: `第 ${p.days.length + 1} 天`, actionIds: [] });
+      p.slots.push({ t: 'train', d: p.days.length - 1 });
+      syncCounts(p);
+      save(); render(true);
+      break;
+    }
+    case 'delDay': {
+      const p = activePlan();
+      const idx = +el.dataset.idx;
+      const day = p.days[idx];
+      if (!day || p.days.length <= 1) break;
+      if (!confirm(`删除「第 ${idx + 1} 天 · ${day.name}」？\n\n循环里这个日子的位置会一起移除，已记录的训练数据不受影响。`)) break;
+      p.days.splice(idx, 1);
+      p.slots = p.slots
+        .filter(s => !(s.t === 'train' && s.d === idx))
+        .map(s => (s.t === 'train' && s.d > idx) ? { t: 'train', d: s.d - 1 } : s);
+      if (!p.slots.length) p.slots = [{ t: 'train', d: 0 }];
+      syncCounts(p);
+      save();
+      go('plan');
+      break;
+    }
+    case 'delPlan': {
+      const id = el.dataset.id;
+      if (state.plans.length <= 1) break;
+      const p = planById(id);
+      if (!confirm(`删除计划「${p.name}」？\n\n已经记录的训练数据会保留，不会丢。`)) break;
+      state.plans = state.plans.filter(x => x.id !== id);
+      Object.keys(state.overrides || {}).forEach(ds => {
+        if (state.overrides[ds].planId === id) delete state.overrides[ds];
+      });
+      if (!state.plans.some(x => x.id === state.activePlanId)) state.activePlanId = state.plans[0].id;
+      save(); render();
+      break;
+    }
+    case 'openNewPlan':
+      ui.modal = { type: 'newPlan', name: '', tpl: 'TTTR' };
+      render(true);
+      setTimeout(() => { const e2 = document.getElementById('newPlanName'); if (e2) e2.focus(); }, 60);
+      break;
+    case 'pickNewTpl':
+      ui.modal.tpl = el.dataset.key;
+      render(true);
+      setTimeout(() => { const e2 = document.getElementById('newPlanName'); if (e2) e2.focus(); }, 10);
+      break;
+    case 'confirmNewPlan': {
+      const inp = document.getElementById('newPlanName');
+      const name = ((inp ? inp.value : '') || '').trim() || `计划 ${state.plans.length + 1}`;
+      const key = PLAN_TPLS.some(t => t.key === ui.modal.tpl) ? ui.modal.tpl : 'TTTR';
+      const need = key.split('').filter(c => c === 'T').length;
+      const np = {
+        id: uid(), name: name.slice(0, 12), startDate: todayISO(),
+        trainDays: need, restDays: key.length - need,
+        days: Array.from({ length: need }, (_, i) => ({ name: `第 ${i + 1} 天`, actionIds: [] })),
+        slots: []
+      };
+      applyTemplate(np, key);
+      state.plans.push(np);
+      state.activePlanId = np.id;
+      ui.modal = null;
+      save(); render();
+      break;
+    }
+    case 'editPlanDay':
+      go('planDay', { idx: +el.dataset.idx });
+      break;
+    case 'togglePlanAction': {
+      const day = activePlan().days[+el.dataset.idx];
+      const id = el.dataset.id;
+      const i = day.actionIds.indexOf(id);
+      if (i >= 0) day.actionIds.splice(i, 1); else day.actionIds.push(id);
+      save(); render();
+      break;
+    }
+    case 'clearLogs': {
+      if (confirm('确定清空所有训练记录？动作和计划会保留。')) {
+        state.logs = {};
+        state.demo = false;
+        save(); render();
+      }
+      break;
+    }
+
+    /* ---- 数据备份 / 安装 ---- */
+    case 'exportData': {
+      const json = JSON.stringify(state, null, 2);
+      const name = `训练日志备份-${todayISO()}.json`;
+      writeLS(EXPORT_KEY, todayISO());
+      if (NATIVE && NATIVE.saveBackup) {
+        NATIVE.saveBackup(name, json);      // 原生版：写进手机的「下载」目录
+      } else {
+        downloadJSON(json, name);
+      }
+      if (route.name === 'plan') render(true);
+      break;
+    }
+    case 'exportBrokenRaw': {
+      const name = `训练日志-原始数据-${todayISO()}.json`;
+      writeLS(EXPORT_KEY, todayISO());
+      if (NATIVE && NATIVE.saveBackup) NATIVE.saveBackup(name, brokenRaw);
+      else downloadJSON(brokenRaw, name);
+      break;
+    }
+    case 'acceptBroken': {
+      if (!confirm('现在这份数据已经导出过了吗？\n\n继续会用空白数据开始，原来的坏数据会另外存一份在本机（不会马上删掉）。')) break;
+      loadNotice = '';
+      saveBlocked = false;
+      state = defaultState();
+      save();
+      render();
+      break;
+    }
+    case 'dismissNotice':
+      loadNotice = '';
+      render(true);
+      break;
+    case 'askPersist': {
+      if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist().then(v => {
+          persistState = v ? 'granted' : 'denied';
+          render(true);
+          if (!v) alert('浏览器没有答应长期保留。\n\n如果你是用无痕模式打开的，或者手机空间很紧，记录可能被清掉。建议先导出备份。');
+        }).catch(() => {});
+      }
+      break;
+    }
+    case 'importData': {
+      // 原生版：交给系统文件选择器
+      if (NATIVE && NATIVE.pickBackup) { NATIVE.pickBackup(); break; }
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.onchange = () => {
+        const f = input.files && input.files[0];
+        if (!f) return;
+        f.text().then(txt => applyBackupText(txt));
+      };
+      input.click();
+      break;
+    }
+    case 'install': {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(() => {
+          deferredPrompt = null;
+          if (route.name === 'plan') render(true);
+        });
+      }
+      break;
+    }
+
+    /* ---- 身体数据 ---- */
+    case 'setSex':
+      state.profile.sex = el.dataset.v === 'female' ? 'female' : 'male';
+      save(); render(true);
+      break;
+    case 'setRest':
+      state.profile.restSec = +el.dataset.v;
+      save(); render(true);
+      break;
+
+    /* ---- 动作库 ---- */
+    case 'openAddAction': {
+      const idx = el.dataset.idx;
+      ui.modal = {
+        type: 'addAction', name: '', group: '胸',
+        forPlan: el.dataset.plan || null,
+        forDay: idx === undefined ? null : +idx
+      };
+      render(true);
+      setTimeout(() => { const el2 = document.getElementById('newActionName'); if (el2) el2.focus(); }, 60);
+      break;
+    }
+    case 'pickGroup':
+      ui.modal.group = el.dataset.g;
+      render(true);
+      setTimeout(() => { const el2 = document.getElementById('newActionName'); if (el2) el2.focus(); }, 10);
+      break;
+    case 'confirmAddAction': {
+      const inp = document.getElementById('newActionName');
+      const name = (inp ? inp.value : '').trim();
+      if (!name) { inp && inp.focus(); break; }
+      if (state.actions.some(a => a.name === name) && !confirm(`已经有叫「${name}」的动作了，还要再加一个吗？`)) break;
+      const newId = uid();
+      state.actions.push({ id: newId, name, group: ui.modal.group || '其他', custom: true });
+      const fd = ui.modal.forDay;
+      const tp = ui.modal.forPlan ? planById(ui.modal.forPlan) : null;
+      if (tp && fd != null && tp.days[fd] && !tp.days[fd].actionIds.includes(newId)) {
+        tp.days[fd].actionIds.push(newId);
+      }
+      ui.modal = null;
+      save(); render(true);
+      break;
+    }
+    case 'closeModal':
+      ui.modal = null;
+      render(true);
+      break;
+    case 'delAction': {
+      const id = el.dataset.id;
+      const a = state.actions.find(x => x.id === id);
+      if (!a) break;
+      if (confirm(`删除动作「${a.name}」？历史记录会保留。`)) {
+        state.actions = state.actions.filter(x => x.id !== id);
+        state.plans.forEach(pl => pl.days.forEach(d => { d.actionIds = d.actionIds.filter(x => x !== id); }));
+        save(); render(true);
+      }
+      break;
+    }
+
+    /* ---- 对比 ---- */
+    case 'setCmp': {
+      const which = el.dataset.which, d = el.dataset.date;
+      if (which === 'a') cmp.a = d; else cmp.b = d;
+      render(true);
+      break;
+    }
+  }
+});
+
+/* ---- 输入：重量 / 次数 ---- */
+app.addEventListener('input', e => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.field) return;
+  const ds = el.dataset.date, ex = el.dataset.ex, i = +el.dataset.set, f = el.dataset.field;
+  // 只允许数字和小数点
+  el.value = el.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
+
+  const log = state.logs[ds];
+  const entry = log && log.entries.find(x => x.actionId === ex);
+  if (!entry) return;
+  entry.sets[i][f] = el.value;
+  save();
+
+  // 实时更新容量 / 热量显示，不重渲染
+  const volEl = document.querySelector(`[data-vol="${ds}|${ex}"]`);
+  if (volEl) volEl.textContent = '容量 ' + Math.round(volumeOf(entry)) + ' kg';
+  if (route.name === 'day') {
+    const st = sessionStats(log);
+    const totEl = document.querySelector(`[data-total="${ds}"]`);
+    if (totEl) totEl.textContent = Math.round(st.volume);
+    const kcalEl = document.querySelector(`[data-kcal="${ds}"]`);
+    if (kcalEl) kcalEl.textContent = st.kcal;
+    const minEl = document.querySelector(`[data-min="${ds}"]`);
+    if (minEl) minEl.textContent = st.minutes;
+    const noteEl = document.querySelector(`[data-kcalnote="${ds}"]`);
+    if (noteEl) noteEl.textContent = kcalNote(st);
+  }
+});
+
+/* ---- change：日期选择、新建动作名 ---- */
+app.addEventListener('change', e => {
+  const el = e.target;
+  if (!el.dataset || !el.dataset.act) return;
+  const act = el.dataset.act;
+
+  if (act === 'setStart') {
+    if (el.value) { activePlan().startDate = el.value; save(); render(true); }
+  } else if (act === 'setHeight' || act === 'setWeight' || act === 'setBodyFat' || act === 'setAge') {
+    const m = {
+      setHeight: ['height', 120, 230],
+      setWeight: ['weight', 30, 250],
+      setBodyFat: ['bodyFat', 3, 60],
+      setAge: ['age', 14, 90]
+    }[act];
+    const key = m[0], lo = m[1], hi = m[2];
+    const raw = String(el.value).trim();
+    if (key === 'bodyFat' && raw === '') {
+      state.profile.bodyFat = ''; save(); render(true);
+    } else {
+      const v = parseFloat(raw);
+      if (v >= lo && v <= hi) { state.profile[key] = Math.round(v * 10) / 10; save(); render(true); }
+      else render(true);   // 越界就恢复成上次保存的值
+    }
+  } else if (act === 'renameDay') {
+    const day = activePlan().days[+el.dataset.idx];
+    if (day) { day.name = el.value.trim() || `第 ${(+el.dataset.idx) + 1} 天`; save(); }
+  } else if (act === 'renamePlan') {
+    const p = planById(el.dataset.id);
+    const v = (el.value || '').trim();
+    if (v) { p.name = v.slice(0, 12); save(); render(true); }
+    else { el.value = p.name; }
+  } else if (act === 'cmpA') {
+    cmp.a = el.value; render(true);
+  } else if (act === 'cmpB') {
+    cmp.b = el.value; render(true);
+  }
+});
+
+/* ---- 新建动作时同步输入框内容到 ui.modal（避免重渲染丢字） ---- */
+app.addEventListener('input', e => {
+  if (e.target.id === 'newActionName' && ui.modal) ui.modal.name = e.target.value;
+  if (e.target.id === 'newPlanName' && ui.modal) ui.modal.name = e.target.value;
+});
+
+/* ---- 新建动作 / 新建计划：回车直接提交 ---- */
+app.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (e.target.id !== 'newActionName' && e.target.id !== 'newPlanName') return;
+  e.preventDefault();
+  const btn = app.querySelector(e.target.id === 'newActionName'
+    ? '[data-act="confirmAddAction"]' : '[data-act="confirmNewPlan"]');
+  if (btn) btn.click();
+});
+
+/* ---- 启动 ---- */
+render();
+
+/* ---- 切到后台时立刻存一份原生快照 ---- */
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') nativeAutoSave(true);
+});
+window.addEventListener('pagehide', () => nativeAutoSave(true));
+
+/* ---- 离线缓存 + 申请持久化存储，避免被系统清理 ---- */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+if (navigator.storage && navigator.storage.persist) {
+  navigator.storage.persist().catch(() => {}).then(checkPersist);
+} else {
+  checkPersist();
+}
+</script>
+</body>
+</html>

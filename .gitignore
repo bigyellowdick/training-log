@@ -1,0 +1,33 @@
+# ===== 构建产物（不要提交） =====
+android-build/sdk/
+android-build/build/
+android-build/tmptest/
+android-build/app/assets/*
+!android-build/app/assets/.gitkeep
+*.apk
+*.apk.idsig
+*.aab
+*.dex
+*.class
+
+# ===== 签名密钥（绝对不能提交！） =====
+*.jks
+*.keystore
+*.p12
+*.pem
+
+# ===== 系统 / 编辑器 =====
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.log
+
+# ===== 本地工具与记忆目录 =====
+.workbuddy/
+node_modules/
+.cdfc/
+.cdfg/
+.wbapp_*.genie
+*.idsig

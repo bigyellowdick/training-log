@@ -1,0 +1,21 @@
+{
+  "name": "训练日志",
+  "short_name": "训练日志",
+  "description": "按动作循环记录力量训练的重量与次数，对比任意两天的进步",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "id": "./index.html",
+  "start_url": "./index.html?sharecode=AJTPIGUBDN",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#f5f6f8",
+  "theme_color": "#f5f6f8",
+  "categories": ["health", "fitness", "lifestyle"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
