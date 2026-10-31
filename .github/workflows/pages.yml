@@ -32,6 +32,9 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
+        with:
+          # 仓库还没在 Settings → Pages 里开启时，尝试自动开启（免去手动改 Source）
+          enablement: true
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
