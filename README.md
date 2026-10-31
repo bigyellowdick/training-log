@@ -6,6 +6,12 @@
 网页版是一个 `index.html`（原生 JS，零依赖，约 110 KB），安卓版是一个 200 行的 WebView 壳，两者共用同一套前端代码。
 
 <p align="center">
+  <a href="https://bigyellowdick.github.io/training-log/"><b>▶ 在线使用</b></a> ｜
+  <a href="https://bigyellowdick.github.io/training-log/TrainingLog-v1.0.1.apk"><b>⬇ 下载安卓安装包</b></a> ｜
+  <a href="https://github.com/bigyellowdick/training-log/releases">Releases</a>
+</p>
+
+<p align="center">
   <img src="docs/shot-calendar.png" width="250" alt="日历">
   <img src="docs/shot-day.png" width="250" alt="训练记录">
   <img src="docs/shot-compare.png" width="250" alt="两天对比">

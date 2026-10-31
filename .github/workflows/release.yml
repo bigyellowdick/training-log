@@ -1,0 +1,42 @@
+name: Publish release
+
+# 打 tag 时（v1.0.1、v1.1.0…）自动建一个 Release，并把对应版本的 APK 挂上去。
+# APK 不进源码仓库，从线上站点取同名文件，保持仓库干净。
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: '要发布的 tag，例如 v1.0.1'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch APK
+        run: |
+          set -e
+          URL="https://bigyellowdick.github.io/training-log/TrainingLog-${TAG}.apk"
+          echo "下载 $URL"
+          curl -fL --retry 3 --retry-delay 2 -o "TrainingLog-${TAG}.apk" "$URL"
+          ls -l "TrainingLog-${TAG}.apk"
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          gh release view "$TAG" >/dev/null 2>&1 && \
+            gh release upload "$TAG" "TrainingLog-${TAG}.apk" --clobber || \
+            gh release create "$TAG" "TrainingLog-${TAG}.apk" \
+              --title "$TAG" --notes-file .github/release-notes.md --verify-tag
